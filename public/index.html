@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="لعبة أتوبيس كومبليت - العب مع أصدقائك أونلاين">
+    <title>أتوبيس كومبليت - لعبة جماعية</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+    <!-- شاشة البداية -->
+    <div id="start-screen" class="screen active">
+        <div class="container">
+            <div class="logo-container">
+                <div class="bus-icon">🚌</div>
+                <h1 class="game-title">أتوبيس كومبليت</h1>
+                <p class="game-subtitle">العب مع أصدقائك في نفس الوقت!</p>
+            </div>
+
+            <div class="start-card">
+                <div class="input-group">
+                    <label for="player-name">اسم اللاعب</label>
+                    <input type="text" id="player-name" placeholder="أدخل اسمك هنا" maxlength="20">
+                </div>
+
+                <div class="input-group">
+                    <label for="room-code">كود الغرفة (اختياري)</label>
+                    <input type="text" id="room-code" placeholder="اترك فارغاً لإنشاء غرفة جديدة" maxlength="6">
+                </div>
+
+                <button id="start-btn" class="btn btn-primary">
+                    <span>ابدأ اللعب</span>
+                    <span class="btn-icon">🎮</span>
+                </button>
+
+                <div class="info-box">
+                    <p>💡 شارك كود الغرفة مع أصدقائك للعب معاً!</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- شاشة الانتظار -->
+    <div id="waiting-screen" class="screen">
+        <div class="container">
+            <div class="waiting-card">
+                <h2>في انتظار اللاعبين...</h2>
+                <div class="room-info">
+                    <p>كود الغرفة:</p>
+                    <div class="room-code-display">
+                        <span id="display-room-code">------</span>
+                        <button id="copy-code-btn" class="btn-icon-small" title="نسخ الكود">📋</button>
+                    </div>
+                </div>
+
+                <div class="players-list">
+                    <h3>اللاعبين المتصلين (<span id="players-count">0</span>)</h3>
+                    <div id="players-container"></div>
+                </div>
+
+                <div class="letter-selection">
+                    <h3>اختر الحرف للجولة:</h3>
+                    <div id="letters-grid" class="letters-grid"></div>
+                </div>
+
+                <button id="start-game-btn" class="btn btn-primary">
+                    <span>ابدأ اللعبة</span>
+                    <span class="btn-icon">🚀</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- شاشة اللعب -->
+    <div id="game-screen" class="screen">
+        <div class="container">
+            <div class="game-header">
+                <div class="header-info">
+                    <div class="current-letter">
+                        <span class="label">الحرف:</span>
+                        <span id="current-letter" class="letter-display">أ</span>
+                    </div>
+                    <div class="timer">
+                        <span class="label">الوقت:</span>
+                        <span id="timer" class="timer-display">00:00</span>
+                    </div>
+                </div>
+                <div class="players-status" id="players-status"></div>
+            </div>
+
+            <div class="game-card">
+                <form id="game-form">
+                    <div class="form-grid">
+                        <div class="input-field">
+                            <label for="boy-input">
+                                <span class="emoji">👦</span>
+                                <span>ولد</span>
+                            </label>
+                            <input type="text" id="boy-input" class="game-input" placeholder="اسم ولد">
+                        </div>
+
+                        <div class="input-field">
+                            <label for="girl-input">
+                                <span class="emoji">👧</span>
+                                <span>بنت</span>
+                            </label>
+                            <input type="text" id="girl-input" class="game-input" placeholder="اسم بنت">
+                        </div>
+
+                        <div class="input-field">
+                            <label for="animal-input">
+                                <span class="emoji">🦁</span>
+                                <span>حيوان</span>
+                            </label>
+                            <input type="text" id="animal-input" class="game-input" placeholder="اسم حيوان">
+                        </div>
+
+                        <div class="input-field">
+                            <label for="plant-input">
+                                <span class="emoji">🌿</span>
+                                <span>نبات</span>
+                            </label>
+                            <input type="text" id="plant-input" class="game-input" placeholder="اسم نبات">
+                        </div>
+
+                        <div class="input-field">
+                            <label for="object-input">
+                                <span class="emoji">📦</span>
+                                <span>جماد</span>
+                            </label>
+                            <input type="text" id="object-input" class="game-input" placeholder="اسم جماد">
+                        </div>
+
+                        <div class="input-field">
+                            <label for="country-input">
+                                <span class="emoji">🌍</span>
+                                <span>بلد</span>
+                            </label>
+                            <input type="text" id="country-input" class="game-input" placeholder="اسم بلد">
+                        </div>
+                    </div>
+
+                    <button type="submit" id="finish-btn" class="btn btn-success">
+                        <span>خلصت! 🎉</span>
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- شاشة النتائج -->
+    <div id="results-screen" class="screen">
+        <div class="container">
+            <div class="results-card">
+                <h2>🏆 النتائج</h2>
+                <div class="winner-announcement" id="winner-announcement"></div>
+
+                <div class="results-table-container">
+                    <table id="results-table" class="results-table">
+                        <thead>
+                            <tr>
+                                <th>اللاعب</th>
+                                <th>👦 ولد</th>
+                                <th>👧 بنت</th>
+                                <th>🦁 حيوان</th>
+                                <th>🌿 نبات</th>
+                                <th>📦 جماد</th>
+                                <th>🌍 بلد</th>
+                                <th>النقاط</th>
+                            </tr>
+                        </thead>
+                        <tbody id="results-body"></tbody>
+                    </table>
+                </div>
+
+                <div class="results-actions">
+                    <button id="play-again-btn" class="btn btn-primary">
+                        <span>جولة جديدة</span>
+                        <span class="btn-icon">🔄</span>
+                    </button>
+                    <button id="exit-btn" class="btn btn-secondary">
+                        <span>الخروج</span>
+                        <span class="btn-icon">🚪</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast للإشعارات -->
+    <div id="toast" class="toast"></div>
+
+    <!-- Socket.IO Client -->
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="app.js"></script>
+</body>
+
+</html>

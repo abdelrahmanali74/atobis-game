@@ -1,0 +1,36 @@
+{
+  "name": "atobis-complete-game",
+  "version": "1.0.0",
+  "description": "لعبة أتوبيس كومبليت - نسخة أونلاين جماعية بتصميم عصري",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "game",
+    "arabic",
+    "multiplayer",
+    "socket.io",
+    "atobis",
+    "complete",
+    "online-game",
+    "real-time"
+  ],
+  "author": "Antigravity AI",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourusername/atobis-complete-game.git"
+  },
+  "engines": {
+    "node": ">=14.0.0",
+    "npm": ">=6.0.0"
+  },
+  "dependencies": {
+    "cors": "^2.8.6",
+    "express": "^5.2.1",
+    "socket.io": "^4.8.3"
+  }
+}
