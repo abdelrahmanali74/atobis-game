@@ -327,11 +327,11 @@ app.get('/stats', (req, res) => {
 });
 
 // Start server
-server.listen(PORT, () => {
+server.listen(PORT, '0.0.0.0', () => {
     console.log(`
 ╔═══════════════════════════════════════╗
 ║   🚌 أتوبيس كومبليت - السيرفر       ║
-║   🌐 http://localhost:${PORT}           ║
+║   🌐 Port: ${PORT}                      ║
 ║   ✅ السيرفر شغال بنجاح!              ║
 ╚═══════════════════════════════════════╝
     `);
