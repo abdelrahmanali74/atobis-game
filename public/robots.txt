@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://atobis-complete-game.up.railway.app/sitemap.xml
