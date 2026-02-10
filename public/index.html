@@ -6,12 +6,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description"
         content="لعبة أتوبيس كومبليت أونلاين - العب لعبة ولد بنت جماد حيوان مع أصدقائك في نفس الوقت. لعبة جماعية عربية ممتعة ومجانية.">
-    <meta name="keywords"
-        content="أتوبيس كومبليت, لعبة ولد بنت, ولد بنت جماد حيوان, لعبة جماعية, أونلاين, multiplayer, arabic game">
-    <meta name="author" content="أتوبيس كومبليت">
-    <meta property="og:title" content="أتوبيس كومبليت - لعبة جماعية أونلاين">
-    <meta property="og:description" content="أول واحد يخلص ينقل الكل لصفحة النتايج! العب الآن مع أصحابك.">
-    <meta property="og:type" content="website">
     <title>أتوبيس كومبليت | لعبة ولد بنت جماد حيوان أونلاين</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -44,10 +38,6 @@
                     <span>ابدأ اللعب</span>
                     <span class="btn-icon">🎮</span>
                 </button>
-
-                <div class="info-box">
-                    <p>💡 شارك كود الغرفة مع أصدقائك للعب معاً!</p>
-                </div>
             </div>
         </div>
     </div>
@@ -70,15 +60,26 @@
                     <div id="players-container"></div>
                 </div>
 
-                <div class="letter-selection">
-                    <h3>اختر الحرف للجولة:</h3>
-                    <div id="letters-grid" class="letters-grid"></div>
+                <!-- خيارات اللعبة (تظهر للمضيف فقط) -->
+                <div id="host-controls" class="host-controls" style="display: none;">
+                    <h3>إعدادات اللعبة</h3>
+                    <div class="setting-group">
+                        <label>عدد الجولات:</label>
+                        <select id="rounds-select">
+                            <option value="5">5 جولات</option>
+                            <option value="10">10 جولات</option>
+                        </select>
+                    </div>
+
+                    <button id="start-game-btn" class="btn btn-primary">
+                        <span>ابدأ اللعبة</span>
+                        <span class="btn-icon">🚀</span>
+                    </button>
                 </div>
 
-                <button id="start-game-btn" class="btn btn-primary">
-                    <span>ابدأ اللعبة</span>
-                    <span class="btn-icon">🚀</span>
-                </button>
+                <div id="waiting-message" style="display: none;">
+                    <p>في انتظار المضيف لبدء اللعبة...</p>
+                </div>
             </div>
         </div>
     </div>
@@ -88,116 +89,124 @@
         <div class="container">
             <div class="game-header">
                 <div class="header-info">
+                    <div class="round-info">
+                        <span class="label">جولة:</span>
+                        <span id="round-display">1 / 5</span>
+                    </div>
                     <div class="current-letter">
                         <span class="label">الحرف:</span>
-                        <span id="current-letter" class="letter-display">أ</span>
+                        <span id="current-letter" class="letter-display">?</span>
                     </div>
                     <div class="timer">
                         <span class="label">الوقت:</span>
                         <span id="timer" class="timer-display">00:00</span>
                     </div>
                 </div>
-                <div class="players-status" id="players-status"></div>
             </div>
 
             <div class="game-card">
                 <form id="game-form">
                     <div class="form-grid">
                         <div class="input-field">
-                            <label for="boy-input">
-                                <span class="emoji">👦</span>
-                                <span>ولد</span>
-                            </label>
-                            <input type="text" id="boy-input" class="game-input" placeholder="اسم ولد">
+                            <label>👦 ولد</label>
+                            <input type="text" id="boy-input" class="game-input">
                         </div>
-
                         <div class="input-field">
-                            <label for="girl-input">
-                                <span class="emoji">👧</span>
-                                <span>بنت</span>
-                            </label>
-                            <input type="text" id="girl-input" class="game-input" placeholder="اسم بنت">
+                            <label>👧 بنت</label>
+                            <input type="text" id="girl-input" class="game-input">
                         </div>
-
                         <div class="input-field">
-                            <label for="animal-input">
-                                <span class="emoji">🦁</span>
-                                <span>حيوان</span>
-                            </label>
-                            <input type="text" id="animal-input" class="game-input" placeholder="اسم حيوان">
+                            <label>🦁 حيوان</label>
+                            <input type="text" id="animal-input" class="game-input">
                         </div>
-
                         <div class="input-field">
-                            <label for="plant-input">
-                                <span class="emoji">🌿</span>
-                                <span>نبات</span>
-                            </label>
-                            <input type="text" id="plant-input" class="game-input" placeholder="اسم نبات">
+                            <label>🌿 نبات</label>
+                            <input type="text" id="plant-input" class="game-input">
                         </div>
-
                         <div class="input-field">
-                            <label for="object-input">
-                                <span class="emoji">📦</span>
-                                <span>جماد</span>
-                            </label>
-                            <input type="text" id="object-input" class="game-input" placeholder="اسم جماد">
+                            <label>📦 جماد</label>
+                            <input type="text" id="object-input" class="game-input">
                         </div>
-
                         <div class="input-field">
-                            <label for="country-input">
-                                <span class="emoji">🌍</span>
-                                <span>بلد</span>
-                            </label>
-                            <input type="text" id="country-input" class="game-input" placeholder="اسم بلد">
+                            <label>🌍 بلد</label>
+                            <input type="text" id="country-input" class="game-input">
                         </div>
                     </div>
 
                     <button type="submit" id="finish-btn" class="btn btn-success">
-                        <span>خلصت! 🎉</span>
+                        <span>خلصت! 🎉</span> <!-- Button triggers finish-round -->
                     </button>
                 </form>
             </div>
         </div>
     </div>
 
-    <!-- شاشة النتائج -->
-    <div id="results-screen" class="screen">
-        <div class="container">
+    <!-- شاشة تصحيح النتائج (بين الجولات) -->
+    <div id="scoring-screen" class="screen">
+        <div class="container wide-container">
             <div class="results-card">
-                <h2>🏆 النتائج</h2>
-                <div class="winner-announcement" id="winner-announcement"></div>
+                <h2>📝 تصحيح النتائج - الجولة <span id="scoring-round-num"></span></h2>
 
-                <div class="results-table-container">
-                    <table id="results-table" class="results-table">
+                <div class="table-responsive">
+                    <table id="scoring-table" class="scoring-table">
                         <thead>
                             <tr>
                                 <th>اللاعب</th>
-                                <th>👦 ولد</th>
-                                <th>👧 بنت</th>
-                                <th>🦁 حيوان</th>
-                                <th>🌿 نبات</th>
-                                <th>📦 جماد</th>
-                                <th>🌍 بلد</th>
-                                <th>النقاط</th>
+                                <th>ولد</th>
+                                <th>بنت</th>
+                                <th>حيوان</th>
+                                <th>نبات</th>
+                                <th>جماد</th>
+                                <th>بلد</th>
+                                <th>المجموع</th>
                             </tr>
                         </thead>
-                        <tbody id="results-body"></tbody>
+                        <tbody id="scoring-body">
+                            <!-- سيتم تعبئة الجدول بالجافاسكريبت -->
+                        </tbody>
                     </table>
                 </div>
 
                 <div class="results-actions">
-                    <button id="play-again-btn" class="btn btn-primary">
-                        <span>جولة جديدة</span>
-                        <span class="btn-icon">🔄</span>
-                    </button>
-                    <button id="exit-btn" class="btn btn-secondary">
-                        <span>الخروج</span>
-                        <span class="btn-icon">🚪</span>
+                    <div id="host-scoring-controls" style="display: none;">
+                        <button id="next-round-btn" class="btn btn-primary">
+                            <span>الجولة التالية</span>
+                            <span class="btn-icon">➡️</span>
+                        </button>
+                    </div>
+                    <div id="waiting-host-scoring" style="display: none;">
+                        <p>في انتظار المضيف لتأكيد النتائج...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- شاشة النتائج النهائية -->
+    <div id="final-screen" class="screen">
+        <div class="container">
+            <div class="results-card final-results">
+                <h1>🏆 الفائزون 🏆</h1>
+                <div id="podium" class="podium"></div>
+
+                <div class="leaderboard">
+                    <h3>ترتيب اللاعبين</h3>
+                    <ul id="leaderboard-list"></ul>
+                </div>
+
+                <div class="results-actions">
+                    <button id="go-home-btn" class="btn btn-secondary">
+                        <span>العودة للرئيسية</span>
                     </button>
                 </div>
             </div>
         </div>
     </div>
+
+    <!-- تذييل الصفحة -->
+    <footer class="game-footer">
+        <p>Developed by <strong>Abdelrahman Ali</strong></p>
+    </footer>
 
     <!-- Toast للإشعارات -->
     <div id="toast" class="toast"></div>

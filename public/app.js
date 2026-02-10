@@ -7,19 +7,14 @@ const gameState = {
     playerName: null,
     players: [],
     currentLetter: null,
-    usedLetters: [],
+    totalRounds: 5,
+    currentRound: 1,
     gameStartTime: null,
     timerInterval: null,
     isHost: false,
     gameAnswers: {},
-    selectedLetter: null
+    scoringData: [] // Stores player data during scoring phase
 };
-
-// ==================== Arabic Letters ====================
-const arabicLetters = [
-    'أ', 'ب', 'ت', 'ث', 'ج', 'ح', 'خ', 'د', 'ذ', 'ر', 'ز', 'س', 'ش',
-    'ص', 'ض', 'ط', 'ظ', 'ع', 'غ', 'ف', 'ق', 'ك', 'ل', 'م', 'ن', 'ه', 'و', 'ي'
-];
 
 // ==================== Screen Management ====================
 function showScreen(screenId) {
@@ -68,7 +63,6 @@ document.getElementById('start-btn').addEventListener('click', () => {
 socket.on('room-created', (data) => {
     gameState.roomCode = data.roomCode;
     gameState.players = data.players;
-    gameState.usedLetters = data.usedLetters;
     gameState.isHost = true;
 
     showWaitingScreen();
@@ -79,18 +73,10 @@ socket.on('room-created', (data) => {
 socket.on('room-joined', (data) => {
     gameState.roomCode = data.roomCode;
     gameState.players = data.players;
-    gameState.usedLetters = data.usedLetters;
     gameState.currentLetter = data.currentLetter;
 
     showWaitingScreen();
     showToast('تم الانضمام للغرفة بنجاح! 🎉');
-
-    // If game is active, join the game
-    if (data.gameActive && data.currentLetter) {
-        setTimeout(() => {
-            startGameRound(data.currentLetter);
-        }, 1000);
-    }
 });
 
 // Player joined
@@ -104,64 +90,36 @@ socket.on('player-joined', (data) => {
 socket.on('player-left', (data) => {
     gameState.players = data.players;
     updatePlayersList();
-    updatePlayersStatus();
 });
 
-// Letter selected
-socket.on('letter-selected', (data) => {
+// Round Started
+socket.on('round-started', (data) => {
     gameState.currentLetter = data.letter;
-    gameState.selectedLetter = data.letter;
-
-    // Update UI
-    document.querySelectorAll('.letter-btn').forEach(btn => {
-        btn.classList.remove('selected');
-        if (btn.dataset.letter === data.letter) {
-            btn.classList.add('selected');
-        }
-    });
-});
-
-// Game started
-socket.on('game-started', (data) => {
-    gameState.currentLetter = data.letter;
+    gameState.currentRound = data.round;
+    gameState.totalRounds = data.totalRounds;
     gameState.gameStartTime = data.startTime;
-    startGameRound(data.letter);
+
+    startRound();
 });
 
-// Player finished
-socket.on('player-finished', (data) => {
-    gameState.players = data.players.map(p => {
-        const existingPlayer = gameState.players.find(ep => ep.id === p.id);
-        return {
-            ...existingPlayer,
-            ...p
-        };
-    });
-    updatePlayersStatus();
-
-    if (data.playerId !== socket.id) {
-        showToast(`${data.playerName} خلص! ⚡`);
-    }
-});
-
-// Game ended
-socket.on('game-ended', (data) => {
+// Round Ended (Someone finished)
+socket.on('round-ended', (data) => {
     stopTimer();
-    setTimeout(() => {
-        showResults(data.players);
-    }, 1000);
+    showToast(`${data.finisher} خلص الجولة! ✋`, 'warning');
+    // Important: Wait for user input or auto-submit?
+    // Current design: Auto-submit what they have.
+    submitCurrentAnswers();
 });
 
-// Reset game
-socket.on('reset-game', (data) => {
-    gameState.players = data.players;
-    gameState.usedLetters = data.usedLetters;
-    gameState.currentLetter = null;
-    gameState.selectedLetter = null;
+// Scoring Phase
+socket.on('scoring-phase', (data) => {
+    gameState.scoringData = data.players;
+    showScoringScreen(data);
+});
 
-    showWaitingScreen();
-    renderLettersGrid();
-    showToast('جاهز لجولة جديدة! 🎮');
+// Game Over
+socket.on('game-over', (data) => {
+    showFinalResults(data.players);
 });
 
 // Error
@@ -174,11 +132,18 @@ function showWaitingScreen() {
     showScreen('waiting-screen');
     document.getElementById('display-room-code').textContent = gameState.roomCode;
     updatePlayersList();
-    renderLettersGrid();
 
-    // Show start button only for host
-    const startBtn = document.getElementById('start-game-btn');
-    startBtn.style.display = gameState.isHost ? 'flex' : 'none';
+    // Show host controls
+    const hostControls = document.getElementById('host-controls');
+    const waitingMsg = document.getElementById('waiting-message');
+
+    if (gameState.isHost) {
+        hostControls.style.display = 'block';
+        waitingMsg.style.display = 'none';
+    } else {
+        hostControls.style.display = 'none';
+        waitingMsg.style.display = 'block';
+    }
 }
 
 function updatePlayersList() {
@@ -195,32 +160,6 @@ function updatePlayersList() {
     `).join('');
 }
 
-function renderLettersGrid() {
-    const grid = document.getElementById('letters-grid');
-    grid.innerHTML = arabicLetters.map(letter => `
-        <button class="letter-btn ${gameState.usedLetters.includes(letter) ? 'used' : ''} ${gameState.selectedLetter === letter ? 'selected' : ''}" 
-                data-letter="${letter}"
-                ${gameState.usedLetters.includes(letter) || !gameState.isHost ? 'disabled' : ''}>
-            ${letter}
-        </button>
-    `).join('');
-
-    // Add click listeners (only for host)
-    if (gameState.isHost) {
-        document.querySelectorAll('.letter-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
-                if (!btn.classList.contains('used')) {
-                    gameState.selectedLetter = btn.dataset.letter;
-                    socket.emit('select-letter', {
-                        roomCode: gameState.roomCode,
-                        letter: btn.dataset.letter
-                    });
-                }
-            });
-        });
-    }
-}
-
 // ==================== Copy Room Code ====================
 document.getElementById('copy-code-btn').addEventListener('click', () => {
     navigator.clipboard.writeText(gameState.roomCode).then(() => {
@@ -228,40 +167,44 @@ document.getElementById('copy-code-btn').addEventListener('click', () => {
     });
 });
 
-// ==================== Start Game ====================
+// ==================== Start Game (Host) ====================
 document.getElementById('start-game-btn').addEventListener('click', () => {
-    if (!gameState.selectedLetter) {
-        showToast('من فضلك اختر حرف للجولة!', 'error');
-        return;
-    }
-
-    socket.emit('start-game', gameState.roomCode);
+    const rounds = document.getElementById('rounds-select').value;
+    socket.emit('start-game', {
+        roomCode: gameState.roomCode,
+        totalRounds: rounds
+    });
 });
 
-function startGameRound(letter) {
+// ==================== Game Logic ====================
+function startRound() {
     showScreen('game-screen');
-    document.getElementById('current-letter').textContent = letter;
 
-    // Reset form
+    // Update Header
+    document.getElementById('current-letter').textContent = gameState.currentLetter;
+    document.getElementById('round-display').textContent = `${gameState.currentRound} / ${gameState.totalRounds}`;
+
+    // Reset Form
     document.getElementById('game-form').reset();
-    gameState.gameAnswers = {};
+    document.getElementById('finish-btn').disabled = false;
+    document.querySelectorAll('.game-input').forEach(input => {
+        input.disabled = false;
+        input.value = '';
+        input.classList.remove('filled');
+    });
 
-    // Update players status
-    updatePlayersStatus();
-
-    // Start timer
+    // Start Timer
     startTimer();
-
-    // Add input listeners
     addInputListeners();
 
-    showToast('بدأت الجولة! حظاً موفقاً 🚀');
+    showToast(`بدأت الجولة ${gameState.currentRound}! الحرف: ${gameState.currentLetter} 🚀`);
 }
 
-// ==================== Timer ====================
 function startTimer() {
     const timerDisplay = document.getElementById('timer');
     let startTime = Date.now();
+
+    if (gameState.timerInterval) clearInterval(gameState.timerInterval);
 
     gameState.timerInterval = setInterval(() => {
         const elapsed = Math.floor((Date.now() - startTime) / 1000);
@@ -278,13 +221,10 @@ function stopTimer() {
     }
 }
 
-// ==================== Input Listeners ====================
 function addInputListeners() {
-    const inputs = document.querySelectorAll('.game-input');
-    inputs.forEach(input => {
+    document.querySelectorAll('.game-input').forEach(input => {
         input.addEventListener('input', (e) => {
-            const value = e.target.value.trim();
-            if (value) {
+            if (e.target.value.trim()) {
                 e.target.classList.add('filled');
             } else {
                 e.target.classList.remove('filled');
@@ -293,23 +233,35 @@ function addInputListeners() {
     });
 }
 
-// ==================== Players Status ====================
-function updatePlayersStatus() {
-    const container = document.getElementById('players-status');
-    container.innerHTML = gameState.players.map(player => `
-        <div class="player-status ${player.finished ? 'finished' : ''}">
-            <span class="status-icon">${player.finished ? '✅' : '⏳'}</span>
-            <span>${player.name}</span>
-        </div>
-    `).join('');
-}
-
-// ==================== Submit Answers ====================
+// ==================== Submit Logic ====================
+// Triggered by "Finished" button
 document.getElementById('game-form').addEventListener('submit', (e) => {
     e.preventDefault();
+    document.getElementById('finish-btn').disabled = true;
 
-    // Collect answers
-    gameState.gameAnswers = {
+    const answers = collectAnswers();
+    socket.emit('finish-round', {
+        roomCode: gameState.roomCode,
+        answers: answers
+    });
+
+    // Disable inputs
+    disableInputs();
+});
+
+function submitCurrentAnswers() {
+    // When round is forced to end by someone else
+    const answers = collectAnswers();
+    disableInputs();
+
+    socket.emit('submit-answers', {
+        roomCode: gameState.roomCode,
+        answers: answers
+    });
+}
+
+function collectAnswers() {
+    return {
         boy: document.getElementById('boy-input').value.trim(),
         girl: document.getElementById('girl-input').value.trim(),
         animal: document.getElementById('animal-input').value.trim(),
@@ -317,71 +269,190 @@ document.getElementById('game-form').addEventListener('submit', (e) => {
         object: document.getElementById('object-input').value.trim(),
         country: document.getElementById('country-input').value.trim()
     };
+}
 
-    // Send to server
-    socket.emit('submit-answers', {
-        roomCode: gameState.roomCode,
-        answers: gameState.gameAnswers
-    });
-
-    showToast('تم إرسال إجاباتك! ⏳ في انتظار باقي اللاعبين...');
-
-    // Disable form
+function disableInputs() {
+    document.querySelectorAll('.game-input').forEach(i => i.disabled = true);
     document.getElementById('finish-btn').disabled = true;
-    document.querySelectorAll('.game-input').forEach(input => {
-        input.disabled = true;
+}
+
+// ==================== Scoring Screen ====================
+function showScoringScreen(data) {
+    showScreen('scoring-screen');
+    document.getElementById('scoring-round-num').textContent = data.currentRound;
+
+    const tbody = document.getElementById('scoring-body');
+    tbody.innerHTML = '';
+
+    const categories = ['boy', 'girl', 'animal', 'plant', 'object', 'country'];
+    const isHost = gameState.isHost;
+
+    data.players.forEach(player => {
+        const row = document.createElement('tr');
+
+        // Name
+        const nameCell = document.createElement('td');
+        nameCell.innerHTML = `<strong>${player.name}</strong>`;
+        row.appendChild(nameCell);
+
+        let playerScoreSum = 0;
+
+        // Answers
+        categories.forEach(cat => {
+            const cell = document.createElement('td');
+            const answerText = player.answers[cat] || '-';
+
+            // Check if server validation passed (simple check)
+            // Implementation detail: server sends NO details on score per field in 'scoring-phase' currently
+            // We just have 'roundScore'. 
+            // Better approach: Let host control entirely.
+
+            // Default logic for dropdown selection
+            let defaultScore = 0;
+            if (answerText.trim() !== '-' && answerText.trim().length > 0) {
+                if (answerText.trim().toLowerCase().startsWith(gameState.currentLetter.toLowerCase())) {
+                    defaultScore = 10;
+                }
+            }
+
+            if (isHost) {
+                // Editable controls
+                const container = document.createElement('div');
+                container.className = 'score-control-container';
+
+                const ansDiv = document.createElement('div');
+                ansDiv.className = 'answer-text';
+                ansDiv.textContent = answerText;
+
+                const select = document.createElement('select');
+                select.className = 'score-select';
+                select.dataset.playerId = player.id;
+
+                [0, 5, 10].forEach(val => {
+                    const opt = document.createElement('option');
+                    opt.value = val;
+                    opt.textContent = val;
+                    if (val === defaultScore) opt.selected = true;
+                    select.appendChild(opt);
+                });
+
+                // Update total on change
+                select.addEventListener('change', () => {
+                    calculateTotalsLocally();
+                });
+
+                container.appendChild(ansDiv);
+                container.appendChild(select);
+                cell.appendChild(container);
+
+                playerScoreSum += defaultScore;
+            } else {
+                cell.textContent = answerText;
+                playerScoreSum = player.roundScore; // Use server score for non-hosts initially
+            }
+            row.appendChild(cell);
+        });
+
+        // Total
+        const totalCell = document.createElement('td');
+        totalCell.className = 'round-total';
+        totalCell.id = `total-${player.id}`;
+        totalCell.textContent = playerScoreSum;
+        row.appendChild(totalCell);
+
+        tbody.appendChild(row);
     });
-});
 
-// ==================== Show Results ====================
-function showResults(players) {
-    showScreen('results-screen');
+    if (isHost) {
+        document.getElementById('host-scoring-controls').style.display = 'block';
+        document.getElementById('waiting-host-scoring').style.display = 'none';
+        calculateTotalsLocally(); // Initial calculation based on defaults
+    } else {
+        document.getElementById('host-scoring-controls').style.display = 'none';
+        document.getElementById('waiting-host-scoring').style.display = 'block';
+    }
+}
 
-    // Sort by score
-    const sortedPlayers = [...players].sort((a, b) => b.score - a.score);
-
-    // Show winner
-    const winner = sortedPlayers[0];
-    document.getElementById('winner-announcement').innerHTML = `
-        🏆 الفائز: <strong>${winner.name}</strong> بمجموع ${winner.score} نقطة!
-    `;
-
-    // Build results table
-    const tbody = document.getElementById('results-body');
-    tbody.innerHTML = sortedPlayers.map((player, index) => `
-        <tr class="${index === 0 ? 'winner-row' : ''}">
-            <td><strong>${player.name}</strong></td>
-            <td>${player.answers?.boy || '-'}</td>
-            <td>${player.answers?.girl || '-'}</td>
-            <td>${player.answers?.animal || '-'}</td>
-            <td>${player.answers?.plant || '-'}</td>
-            <td>${player.answers?.object || '-'}</td>
-            <td>${player.answers?.country || '-'}</td>
-            <td class="score-cell">${player.score}</td>
-        </tr>
-    `).join('');
-
-    // Re-enable form for next round
-    document.getElementById('finish-btn').disabled = false;
-    document.querySelectorAll('.game-input').forEach(input => {
-        input.disabled = false;
+function calculateTotalsLocally() {
+    const rows = document.getElementById('scoring-body').querySelectorAll('tr');
+    rows.forEach(row => {
+        const selects = row.querySelectorAll('select');
+        let sum = 0;
+        if (selects.length > 0) {
+            selects.forEach(s => sum += parseInt(s.value));
+            const totalCell = row.querySelector('.round-total');
+            if (totalCell) totalCell.textContent = sum;
+        }
     });
 }
 
-// ==================== Play Again ====================
-document.getElementById('play-again-btn').addEventListener('click', () => {
-    if (gameState.isHost) {
-        socket.emit('play-again', gameState.roomCode);
-    } else {
-        showToast('فقط منشئ الغرفة يمكنه بدء جولة جديدة', 'error');
-    }
+// Next Round (Host)
+document.getElementById('next-round-btn').addEventListener('click', () => {
+    // Collect scores from DOM
+    const playerScores = [];
+    const rows = document.getElementById('scoring-body').querySelectorAll('tr');
+
+    // We need to map rows back to player IDs. 
+    // The select elements have data-player-id.
+    // Let's iterate players from state to be safe.
+
+    gameState.scoringData.forEach(p => {
+        const totalCell = document.getElementById(`total-${p.id}`);
+        // If host, we trust the DOM calculation which comes from the selects
+        // If not host, this button isn't visible anyway
+        if (totalCell) {
+            playerScores.push({
+                id: p.id,
+                roundScore: parseInt(totalCell.textContent)
+            });
+        }
+    });
+
+    socket.emit('update-scores-and-next', {
+        roomCode: gameState.roomCode,
+        playerScores
+    });
 });
 
-// ==================== Exit Game ====================
-document.getElementById('exit-btn').addEventListener('click', () => {
-    if (confirm('هل أنت متأكد من الخروج من اللعبة؟')) {
-        location.reload();
-    }
+// ==================== Final Results ====================
+function showFinalResults(players) {
+    showScreen('final-screen');
+
+    const podium = document.getElementById('podium');
+    const list = document.getElementById('leaderboard-list');
+
+    // Convert to array and sort
+    const sorted = players.sort((a, b) => b.totalScore - a.totalScore);
+
+    // Top 3
+    let podiumHTML = '';
+    if (sorted[0]) podiumHTML += createPodiumItem(sorted[0], 1, '🥇');
+    if (sorted[1]) podiumHTML += createPodiumItem(sorted[1], 2, '🥈');
+    if (sorted[2]) podiumHTML += createPodiumItem(sorted[2], 3, '🥉');
+    podium.innerHTML = podiumHTML;
+
+    // List
+    list.innerHTML = sorted.map((p, i) => `
+        <li class="leaderboard-item">
+            <span class="rank">#${i + 1}</span>
+            <span class="name">${p.name}</span>
+            <span class="score">${p.totalScore} نقطة</span>
+        </li>
+    `).join('');
+}
+
+function createPodiumItem(player, rank, medal) {
+    return `
+        <div class="podium-item rank-${rank}">
+            <div class="medal">${medal}</div>
+            <div class="p-name">${player.name}</div>
+            <div class="p-score">${player.totalScore}</div>
+        </div>
+    `;
+}
+
+document.getElementById('go-home-btn').addEventListener('click', () => {
+    location.reload();
 });
 
 // ==================== Connection Status ====================
@@ -394,6 +465,4 @@ socket.on('disconnect', () => {
     showToast('انقطع الاتصال بالسيرفر!', 'error');
 });
 
-// ==================== Initialize ====================
-console.log('🚌 لعبة أتوبيس كومبليت - نسخة أونلاين جاهزة!');
-console.log('تم تطوير اللعبة بواسطة Antigravity AI');
+console.log('🚌 لعبة أتوبيس كومبليت - تطوير عبد الرحمن علي');

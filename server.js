@@ -193,77 +193,181 @@ io.on('connection', (socket) => {
     });
 
     // Start game
-    socket.on('start-game', (roomCode) => {
+    socket.on('start-game', ({ roomCode, totalRounds }) => {
         const room = getRoomByCode(roomCode);
-        if (!room || room.host !== socket.id || !room.currentLetter) return;
+        if (!room || room.host !== socket.id) return;
 
-        room.gameActive = true;
-        room.gameStartTime = Date.now();
-        room.usedLetters.push(room.currentLetter);
+        room.totalRounds = parseInt(totalRounds) || 5;
+        room.currentRound = 1;
+        room.usedLetters = [];
+        room.players.forEach(p => p.totalScore = 0);
 
-        // Reset players
-        room.players.forEach(player => {
-            player.finished = false;
-            player.answers = null;
-            player.score = 0;
-            player.finishTime = null;
-        });
-
-        io.to(roomCode).emit('game-started', {
-            letter: room.currentLetter,
-            startTime: room.gameStartTime
-        });
-
-        console.log(`🎮 Game started in room ${roomCode} with letter: ${room.currentLetter}`);
+        startRound(roomCode);
     });
 
-    // Submit answers
-    socket.on('submit-answers', ({ roomCode, answers }) => {
+    function startRound(roomCode) {
         const room = getRoomByCode(roomCode);
-        if (!room || !room.gameActive) return;
+        if (!room) return;
 
-        const player = room.players.find(p => p.id === socket.id);
-        if (!player || player.finished) return;
+        // Select random letter not used yet
+        const arabicLetters = [
+            'أ', 'ب', 'ت', 'ث', 'ج', 'ح', 'خ', 'د', 'ذ', 'ر', 'ز', 'س', 'ش',
+            'ص', 'ض', 'ط', 'ظ', 'ع', 'غ', 'ف', 'ق', 'ك', 'ل', 'م', 'ن', 'ه', 'و', 'ي'
+        ];
 
-        player.finished = true;
-        player.answers = answers;
-        player.finishTime = Date.now() - room.gameStartTime;
+        let availableLetters = arabicLetters.filter(l => !room.usedLetters.includes(l));
+        if (availableLetters.length === 0) {
+            room.usedLetters = []; // Reset if all used
+            availableLetters = arabicLetters;
+        }
 
-        // Notify all players
-        io.to(roomCode).emit('player-finished', {
-            playerId: socket.id,
-            playerName: player.name,
-            players: room.players.map(p => ({
-                id: p.id,
-                name: p.name,
-                finished: p.finished
-            }))
+        const randomLetter = availableLetters[Math.floor(Math.random() * availableLetters.length)];
+
+        room.currentLetter = randomLetter;
+        room.usedLetters.push(randomLetter);
+        room.gameActive = true;
+        room.roundStartTime = Date.now();
+        room.roundState = 'playing';
+
+        // Reset round data
+        room.players.forEach(player => {
+            player.finished = false;
+            player.answers = { boy: '', girl: '', animal: '', plant: '', object: '', country: '' };
+            player.roundScore = 0;
         });
 
-        console.log(`✅ ${player.name} finished in room ${roomCode}`);
+        io.to(roomCode).emit('round-started', {
+            round: room.currentRound,
+            totalRounds: room.totalRounds,
+            letter: room.currentLetter,
+            startTime: room.roundStartTime
+        });
 
-        // Check if all players finished
-        if (room.players.every(p => p.finished)) {
-            // Calculate scores
-            room.players.forEach(player => {
-                player.score = calculateScore(player, room);
+        console.log(`🎮 Round ${room.currentRound} started in room ${roomCode} with letter: ${room.currentLetter}`);
+    }
+
+    // Player finished round (triggers stop for everyone)
+    socket.on('finish-round', ({ roomCode, answers }) => {
+        const room = getRoomByCode(roomCode);
+        if (!room || !room.gameActive || room.roundState !== 'playing') return;
+
+        const player = room.players.find(p => p.id === socket.id);
+        if (!player) return;
+
+        // Save this player's answers
+        player.answers = answers;
+        player.finished = true;
+
+        // Stop the round immediately for everyone
+        room.roundState = 'scoring';
+
+        // Calculate initial scores (auto-scoring)
+        room.players.forEach(p => {
+            // If player didn't finish, their answers might be empty/partial (we rely on frontend to send current state)
+            // But here we only have the finisher's answers confirmed. 
+            // We need to ask everyone else for their answers OR rely on live updates (not implemented).
+            // Strategy: When one finishes, we broadcast "stop", clients send "submit-round-answers".
+        });
+
+        // Correction: The requester said "First one finishes -> move to results".
+        // Use a two-step process: 
+        // 1. Finisher sends 'finish-round'. 
+        // 2. Server tells everyone 'round-ended'. 
+        // 3. Everyone sends 'submit-answers'.
+        // 4. Server aggregates and sends 'scoring-phase'.
+
+        io.to(roomCode).emit('round-ended', {
+            finisher: player.name
+        });
+    });
+
+    // Receive answers from all players after round ends
+    socket.on('submit-answers', ({ roomCode, answers }) => {
+        const room = getRoomByCode(roomCode);
+        if (!room) return;
+
+        const player = room.players.find(p => p.id === socket.id);
+        if (!player) return;
+
+        player.answers = answers;
+        player.hasSubmitted = true;
+
+        // Check if all active players have submitted
+        const allSubmitted = room.players.every(p => p.hasSubmitted || p.disconnected);
+
+        if (allSubmitted) {
+            // initial scoring calculation
+            calculateInitialScores(room);
+
+            io.to(roomCode).emit('scoring-phase', {
+                players: room.players.map(p => ({
+                    id: p.id,
+                    name: p.name,
+                    answers: p.answers,
+                    roundScore: p.roundScore,
+                    totalScore: p.totalScore || 0
+                })),
+                currentRound: room.currentRound,
+                totalRounds: room.totalRounds,
+                isHost: socket.id === room.host // logic helper
             });
+        }
+    });
 
+    function calculateInitialScores(room) {
+        // Collect all answers for each category to check duplicates
+        const categories = ['boy', 'girl', 'animal', 'plant', 'object', 'country'];
+
+        // Helper to normalize text
+        const normalize = (text) => text ? text.trim().toLowerCase() : '';
+
+        room.players.forEach(player => {
+            player.roundScore = 0;
+            player.scores = {}; // Detailed scores per category
+
+            categories.forEach(cat => {
+                const ans = normalize(player.answers[cat]);
+                if (!ans || !ans.startsWith(room.currentLetter)) {
+                    player.scores[cat] = 0;
+                    return;
+                }
+
+                // Check duplicates against other players
+                const isDuplicate = room.players.some(other =>
+                    other.id !== player.id &&
+                    normalize(other.answers[cat]) === ans
+                );
+
+                player.scores[cat] = isDuplicate ? 5 : 10;
+                player.roundScore += player.scores[cat];
+            });
+        });
+    }
+
+    // Host updates scores and proceeds
+    socket.on('update-scores-and-next', ({ roomCode, playerScores }) => {
+        const room = getRoomByCode(roomCode);
+        if (!room || room.host !== socket.id) return;
+
+        // Update scores based on host editing
+        playerScores.forEach(update => {
+            const player = room.players.find(p => p.id === update.id);
+            if (player) {
+                player.roundScore = update.roundScore;
+                player.totalScore = (player.totalScore || 0) + player.roundScore;
+            }
+        });
+
+        // Check if game over
+        if (room.currentRound >= room.totalRounds) {
+            io.to(roomCode).emit('game-over', {
+                players: room.players.sort((a, b) => b.totalScore - a.totalScore)
+            });
             room.gameActive = false;
-
-            // Send results
-            setTimeout(() => {
-                io.to(roomCode).emit('game-ended', {
-                    players: room.players.map(p => ({
-                        name: p.name,
-                        answers: p.answers,
-                        score: p.score,
-                        finishTime: p.finishTime
-                    }))
-                });
-
-                console.log(`🏆 Game ended in room ${roomCode}`);
-            }, 1000);
+        } else {
+            // Next round
+            room.currentRound++;
+            startRound(roomCode);
         }
     });
 
