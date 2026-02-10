@@ -1,0 +1,754 @@
+/* ==================== Spy Game Specific Styles ==================== */
+
+/* Back Home Button */
+.back-home-btn {
+    position: fixed;
+    top: 1.25rem;
+    right: 1.25rem;
+    z-index: 9999;
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    border: 2px solid var(--card-border);
+    background: var(--card-bg);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: var(--transition);
+    box-shadow: var(--shadow-md);
+    text-decoration: none;
+    font-size: 1.4rem;
+}
+
+.back-home-btn:hover {
+    transform: scale(1.12);
+    box-shadow: var(--shadow-lg), var(--shadow-glow);
+    border-color: var(--accent-primary);
+}
+
+/* Spy Icon Animation */
+.spy-icon {
+    font-size: 5rem;
+    margin-bottom: 1rem;
+    animation: spyPeek 2.5s ease-in-out infinite;
+    display: inline-block;
+}
+
+@keyframes spyPeek {
+
+    0%,
+    100% {
+        transform: scale(1) rotate(0deg);
+    }
+
+    25% {
+        transform: scale(1.1) rotate(-5deg);
+    }
+
+    50% {
+        transform: scale(1) rotate(0deg);
+    }
+
+    75% {
+        transform: scale(1.1) rotate(5deg);
+    }
+}
+
+.spy-title {
+    background: linear-gradient(135deg, #e74c3c 0%, #f39c12 50%, #e74c3c 100%) !important;
+    background-size: 200% auto !important;
+    animation: shimmer 3s linear infinite;
+}
+
+@keyframes shimmer {
+    0% {
+        background-position: 0% center;
+    }
+
+    100% {
+        background-position: 200% center;
+    }
+}
+
+/* Spy Card Accent */
+.spy-card {
+    border-color: rgba(231, 76, 60, 0.2) !important;
+}
+
+.spy-card:hover {
+    border-color: rgba(231, 76, 60, 0.4) !important;
+    box-shadow: var(--shadow-lg), 0 0 30px rgba(231, 76, 60, 0.15) !important;
+}
+
+.spy-btn {
+    background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%) !important;
+}
+
+.spy-btn:hover {
+    box-shadow: var(--shadow-lg), 0 0 25px rgba(231, 76, 60, 0.4) !important;
+}
+
+/* ==================== Role Reveal Screen ==================== */
+.spy-role-card {
+    background: var(--card-bg);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid var(--card-border);
+    border-radius: var(--radius-xl);
+    padding: 2.5rem;
+    box-shadow: var(--shadow-lg);
+    max-width: 500px;
+    margin: 0 auto;
+    text-align: center;
+}
+
+.round-badge {
+    display: inline-block;
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.2), rgba(118, 75, 162, 0.2));
+    border: 1px solid rgba(102, 126, 234, 0.3);
+    border-radius: 50px;
+    padding: 0.5rem 1.5rem;
+    font-weight: 700;
+    font-size: 0.95rem;
+    margin-bottom: 1.5rem;
+    color: var(--text-primary);
+}
+
+.role-reveal-container {
+    min-height: 300px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+
+/* Tap to reveal */
+.role-hidden {
+    cursor: pointer;
+    padding: 3rem;
+    border-radius: var(--radius-lg);
+    border: 2px dashed var(--card-border);
+    transition: var(--transition);
+    width: 100%;
+}
+
+.role-hidden:hover {
+    border-color: var(--accent-primary);
+    background: rgba(102, 126, 234, 0.05);
+    transform: scale(1.02);
+}
+
+.tap-icon {
+    font-size: 4rem;
+    animation: tapBounce 1.5s ease-in-out infinite;
+    margin-bottom: 1rem;
+}
+
+@keyframes tapBounce {
+
+    0%,
+    100% {
+        transform: translateY(0);
+    }
+
+    50% {
+        transform: translateY(-15px);
+    }
+}
+
+.role-hint {
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    margin-top: 0.5rem;
+}
+
+/* Role Revealed */
+.role-revealed {
+    animation: roleReveal 0.6s ease-out;
+    width: 100%;
+}
+
+@keyframes roleReveal {
+    from {
+        opacity: 0;
+        transform: scale(0.8) rotateY(90deg);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1) rotateY(0deg);
+    }
+}
+
+.role-emoji {
+    font-size: 5rem;
+    margin-bottom: 1rem;
+}
+
+.role-title {
+    font-size: 1.8rem;
+    font-weight: 900;
+    margin-bottom: 1.5rem;
+}
+
+.role-title.spy-role {
+    color: #e74c3c !important;
+    -webkit-text-fill-color: #e74c3c !important;
+}
+
+.role-title.civilian-role {
+    color: #2ecc71 !important;
+    -webkit-text-fill-color: #2ecc71 !important;
+}
+
+.role-word-container {
+    background: rgba(46, 204, 113, 0.1);
+    border: 1px solid rgba(46, 204, 113, 0.3);
+    border-radius: var(--radius-lg);
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.role-category-label {
+    font-size: 0.95rem;
+    color: var(--text-secondary);
+    margin-bottom: 0.75rem;
+}
+
+.role-word {
+    font-size: 2.5rem;
+    font-weight: 900;
+    background: linear-gradient(135deg, #2ecc71, #27ae60);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.role-word.spy-word {
+    background: linear-gradient(135deg, #e74c3c, #c0392b) !important;
+    -webkit-background-clip: text !important;
+    background-clip: text !important;
+}
+
+/* Confirmed state */
+.role-confirmed {
+    animation: fadeIn 0.5s ease-out;
+    width: 100%;
+}
+
+.confirmed-icon {
+    font-size: 4rem;
+    margin-bottom: 1rem;
+}
+
+.confirmed-count {
+    font-size: 1.5rem;
+    font-weight: 900;
+    background: var(--primary);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-top: 1rem;
+}
+
+/* ==================== Discussion Screen ==================== */
+.spy-discussion-card {
+    background: var(--card-bg);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid var(--card-border);
+    border-radius: var(--radius-xl);
+    padding: 2.5rem;
+    box-shadow: var(--shadow-lg);
+    max-width: 600px;
+    margin: 0 auto;
+    text-align: center;
+}
+
+.discussion-header {
+    margin-bottom: 2rem;
+}
+
+.discussion-header h2 {
+    font-size: 1.8rem;
+    margin-bottom: 0.5rem;
+    color: var(--text-primary);
+}
+
+/* Timer Circle */
+.timer-container {
+    display: flex;
+    justify-content: center;
+    margin: 2rem 0;
+}
+
+.timer-circle {
+    position: relative;
+    width: 200px;
+    height: 200px;
+}
+
+.timer-svg {
+    transform: rotate(-90deg);
+    width: 100%;
+    height: 100%;
+}
+
+.timer-bg {
+    fill: none;
+    stroke: var(--card-border);
+    stroke-width: 6;
+}
+
+.timer-progress {
+    fill: none;
+    stroke: url(#timerGradient);
+    stroke-width: 6;
+    stroke-linecap: round;
+    stroke-dasharray: 283;
+    stroke-dashoffset: 0;
+    transition: stroke-dashoffset 1s linear;
+}
+
+/* Fallback for non-gradient support */
+.timer-progress {
+    stroke: #e74c3c;
+}
+
+.timer-text {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+}
+
+.timer-big {
+    font-size: 3rem;
+    font-weight: 900;
+    font-family: 'Courier New', monospace;
+    color: var(--text-primary);
+}
+
+.timer-big.warning {
+    color: #f39c12 !important;
+    animation: timerPulse 0.5s ease-in-out infinite;
+}
+
+.timer-big.danger {
+    color: #e74c3c !important;
+    animation: timerPulse 0.3s ease-in-out infinite;
+}
+
+@keyframes timerPulse {
+
+    0%,
+    100% {
+        transform: scale(1);
+    }
+
+    50% {
+        transform: scale(1.1);
+    }
+}
+
+/* Discussion Info */
+.discussion-info {
+    margin: 1.5rem 0;
+}
+
+.category-badge {
+    display: inline-block;
+    background: rgba(102, 126, 234, 0.15);
+    border: 1px solid rgba(102, 126, 234, 0.3);
+    border-radius: 50px;
+    padding: 0.5rem 1.5rem;
+    font-size: 1rem;
+    color: var(--text-primary);
+    margin-bottom: 0.75rem;
+}
+
+.word-reminder {
+    font-size: 1.1rem;
+    color: #2ecc71;
+    margin-top: 0.5rem;
+    padding: 0.75rem 1.5rem;
+    background: rgba(46, 204, 113, 0.1);
+    border-radius: var(--radius-md);
+    border: 1px solid rgba(46, 204, 113, 0.2);
+}
+
+.spy-reminder {
+    font-size: 1.1rem;
+    color: #e74c3c;
+    margin-top: 0.5rem;
+    padding: 0.75rem 1.5rem;
+    background: rgba(231, 76, 60, 0.1);
+    border-radius: var(--radius-md);
+    border: 1px solid rgba(231, 76, 60, 0.2);
+    animation: spyGlow 2s ease-in-out infinite;
+}
+
+@keyframes spyGlow {
+
+    0%,
+    100% {
+        box-shadow: 0 0 5px rgba(231, 76, 60, 0.2);
+    }
+
+    50% {
+        box-shadow: 0 0 20px rgba(231, 76, 60, 0.4);
+    }
+}
+
+.discussion-tip {
+    margin-top: 1.5rem;
+    padding: 1rem;
+    background: rgba(243, 156, 18, 0.08);
+    border-radius: var(--radius-md);
+    border: 1px solid rgba(243, 156, 18, 0.15);
+}
+
+.discussion-tip p {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    margin: 0.25rem 0;
+}
+
+/* ==================== Voting Screen ==================== */
+.spy-voting-card {
+    background: var(--card-bg);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid var(--card-border);
+    border-radius: var(--radius-xl);
+    padding: 2.5rem;
+    box-shadow: var(--shadow-lg);
+    max-width: 600px;
+    margin: 0 auto;
+    text-align: center;
+}
+
+.voting-subtitle {
+    color: var(--text-secondary);
+    font-size: 1.1rem;
+    margin-bottom: 2rem;
+}
+
+.voting-players-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 1rem;
+    margin-bottom: 2rem;
+}
+
+.vote-player-card {
+    background: var(--chip-bg);
+    border: 2px solid var(--chip-border);
+    border-radius: var(--radius-lg);
+    padding: 1.25rem 1rem;
+    cursor: pointer;
+    transition: var(--transition);
+    text-align: center;
+}
+
+.vote-player-card:hover {
+    transform: translateY(-3px);
+    border-color: var(--accent-primary);
+    background: rgba(102, 126, 234, 0.1);
+}
+
+.vote-player-card.selected {
+    border-color: #e74c3c;
+    background: rgba(231, 76, 60, 0.15);
+    box-shadow: 0 0 15px rgba(231, 76, 60, 0.2);
+    transform: translateY(-3px);
+}
+
+.vote-player-card .vote-avatar {
+    font-size: 2.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.vote-player-card .vote-name {
+    font-weight: 700;
+    font-size: 0.95rem;
+    color: var(--text-primary);
+}
+
+.vote-player-card.is-me {
+    opacity: 0.4;
+    pointer-events: none;
+}
+
+.waiting-votes {
+    text-align: center;
+    margin-top: 1rem;
+}
+
+.waiting-votes p {
+    color: var(--text-secondary);
+}
+
+/* ==================== Guess Screen ==================== */
+.spy-guess-card {
+    background: var(--card-bg);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(231, 76, 60, 0.2);
+    border-radius: var(--radius-xl);
+    padding: 2.5rem;
+    box-shadow: var(--shadow-lg), 0 0 30px rgba(231, 76, 60, 0.1);
+    max-width: 600px;
+    margin: 0 auto;
+    text-align: center;
+}
+
+.guess-subtitle {
+    color: var(--text-secondary);
+    margin-bottom: 1.5rem;
+}
+
+.guess-category {
+    font-size: 1.1rem;
+    color: var(--text-secondary);
+    margin-bottom: 1.5rem;
+}
+
+.guess-options {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+    gap: 0.75rem;
+    margin-bottom: 2rem;
+}
+
+.guess-option {
+    background: var(--chip-bg);
+    border: 2px solid var(--chip-border);
+    border-radius: var(--radius-md);
+    padding: 1rem 0.75rem;
+    cursor: pointer;
+    transition: var(--transition);
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    font-family: 'Cairo', sans-serif;
+}
+
+.guess-option:hover {
+    transform: translateY(-2px);
+    border-color: var(--accent-primary);
+    background: rgba(102, 126, 234, 0.1);
+}
+
+.guess-option.selected {
+    border-color: #e74c3c;
+    background: rgba(231, 76, 60, 0.15);
+    box-shadow: 0 0 12px rgba(231, 76, 60, 0.2);
+}
+
+.spy-waiting-animation {
+    font-size: 4rem;
+    animation: spySearch 2s ease-in-out infinite;
+    margin: 2rem 0;
+}
+
+@keyframes spySearch {
+
+    0%,
+    100% {
+        transform: translateX(0) rotate(0);
+    }
+
+    25% {
+        transform: translateX(-10px) rotate(-10deg);
+    }
+
+    75% {
+        transform: translateX(10px) rotate(10deg);
+    }
+}
+
+/* ==================== Round Result Screen ==================== */
+.spy-result-card {
+    background: var(--card-bg);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid var(--card-border);
+    border-radius: var(--radius-xl);
+    padding: 2.5rem;
+    box-shadow: var(--shadow-lg);
+    max-width: 600px;
+    margin: 0 auto;
+    text-align: center;
+}
+
+.result-icon {
+    font-size: 5rem;
+    margin-bottom: 1rem;
+    animation: resultBounce 0.8s ease-out;
+}
+
+@keyframes resultBounce {
+    0% {
+        transform: scale(0);
+    }
+
+    50% {
+        transform: scale(1.2);
+    }
+
+    100% {
+        transform: scale(1);
+    }
+}
+
+.result-title {
+    font-size: 2rem;
+    font-weight: 900;
+    margin-bottom: 0.5rem;
+    color: var(--text-primary);
+}
+
+.result-message {
+    font-size: 1.1rem;
+    color: var(--text-secondary);
+    margin-bottom: 2rem;
+}
+
+.result-details {
+    background: rgba(102, 126, 234, 0.08);
+    border: 1px solid rgba(102, 126, 234, 0.15);
+    border-radius: var(--radius-lg);
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.result-detail-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem 0;
+    border-bottom: 1px solid var(--card-border);
+}
+
+.result-detail-item:last-child {
+    border-bottom: none;
+}
+
+.detail-label {
+    color: var(--text-secondary);
+    font-weight: 600;
+}
+
+.detail-value {
+    font-weight: 900;
+    color: var(--text-primary);
+    font-size: 1.1rem;
+}
+
+.detail-value.spy-name {
+    color: #e74c3c;
+}
+
+.round-scores {
+    margin-bottom: 2rem;
+}
+
+.round-scores h3 {
+    margin-bottom: 1rem;
+    color: var(--text-primary);
+    font-size: 1.2rem;
+}
+
+.score-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem 1rem;
+    background: var(--chip-bg);
+    border-radius: var(--radius-sm);
+    margin-bottom: 0.5rem;
+    border: 1px solid var(--chip-border);
+}
+
+.score-item .player-name {
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.score-item .player-score {
+    font-weight: 900;
+    color: var(--success-solid);
+}
+
+.score-item .player-score.negative {
+    color: #e74c3c;
+}
+
+.score-item.spy-player {
+    border-color: rgba(231, 76, 60, 0.3);
+    background: rgba(231, 76, 60, 0.05);
+}
+
+/* ==================== Responsive Spy ==================== */
+@media (max-width: 768px) {
+
+    .spy-role-card,
+    .spy-discussion-card,
+    .spy-voting-card,
+    .spy-guess-card,
+    .spy-result-card {
+        padding: 1.5rem;
+    }
+
+    .timer-circle {
+        width: 160px;
+        height: 160px;
+    }
+
+    .timer-big {
+        font-size: 2.5rem;
+    }
+
+    .role-word {
+        font-size: 2rem;
+    }
+
+    .voting-players-grid {
+        grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+    }
+
+    .guess-options {
+        grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+    }
+
+    .back-home-btn {
+        width: 44px;
+        height: 44px;
+        top: 1rem;
+        right: 1rem;
+        font-size: 1.2rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .role-emoji {
+        font-size: 4rem;
+    }
+
+    .role-title {
+        font-size: 1.4rem;
+    }
+
+    .voting-players-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .guess-options {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}

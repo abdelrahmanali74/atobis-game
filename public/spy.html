@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description"
+        content="لعبة الجاسوس أونلاين - العب مع أصدقائك واكتشف مين الجاسوس! لعبة جماعية عربية ممتعة ومجانية.">
+    <title>لعبة الجاسوس | اكتشف مين الجاسوس!</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="spy-styles.css">
+</head>
+
+<body data-theme="dark">
+    <!-- زرار تبديل الثيم -->
+    <button id="theme-toggle" class="theme-toggle" title="تبديل الوضع الليلي/النهاري">
+        <span class="theme-icon">🌙</span>
+    </button>
+
+    <!-- زرار العودة للرئيسية -->
+    <a href="/" class="back-home-btn" title="العودة للرئيسية">
+        <span>🏠</span>
+    </a>
+
+    <!-- ==================== شاشة البداية ==================== -->
+    <div id="spy-start-screen" class="screen active">
+        <div class="container">
+            <div class="logo-container">
+                <div class="spy-icon">🕵️</div>
+                <h1 class="game-title spy-title">لعبة الجاسوس</h1>
+                <p class="game-subtitle">اكتشف مين الجاسوس بينكم! 🔍</p>
+            </div>
+
+            <div class="start-card spy-card">
+                <div class="input-group">
+                    <label for="spy-player-name">اسم اللاعب</label>
+                    <input type="text" id="spy-player-name" placeholder="أدخل اسمك هنا" maxlength="20">
+                </div>
+
+                <div class="input-group">
+                    <label for="spy-room-code">كود الغرفة (اختياري)</label>
+                    <input type="text" id="spy-room-code" placeholder="اترك فارغاً لإنشاء غرفة جديدة" maxlength="6">
+                </div>
+
+                <button id="spy-start-btn" class="btn btn-primary spy-btn">
+                    <span>ابدأ اللعب</span>
+                    <span class="btn-icon">🕵️</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== شاشة الانتظار ==================== -->
+    <div id="spy-waiting-screen" class="screen">
+        <div class="container">
+            <div class="waiting-card spy-card">
+                <h2>🕵️ في انتظار اللاعبين...</h2>
+                <div class="room-info">
+                    <p>كود الغرفة:</p>
+                    <div class="room-code-display">
+                        <span id="spy-display-room-code">------</span>
+                        <button id="spy-copy-code-btn" class="btn-icon-small" title="نسخ الكود">📋</button>
+                    </div>
+                </div>
+
+                <div class="players-list">
+                    <h3>اللاعبين المتصلين (<span id="spy-players-count">0</span>)</h3>
+                    <div id="spy-players-container"></div>
+                </div>
+
+                <!-- إعدادات الهوست -->
+                <div id="spy-host-controls" class="host-controls" style="display: none;">
+                    <h3>⚙️ إعدادات اللعبة</h3>
+
+                    <div class="setting-group">
+                        <label>🕵️ عدد الجواسيس:</label>
+                        <select id="spy-count-select">
+                            <option value="1" selected>1 جاسوس</option>
+                            <option value="2">2 جاسوس</option>
+                            <option value="3">3 جواسيس</option>
+                        </select>
+                    </div>
+
+                    <div class="setting-group">
+                        <label>⏱️ وقت المناقشة (بالثانية):</label>
+                        <select id="spy-timer-select">
+                            <option value="60">60 ثانية (1 دقيقة)</option>
+                            <option value="90">90 ثانية (1.5 دقيقة)</option>
+                            <option value="120" selected>120 ثانية (2 دقيقة)</option>
+                            <option value="180">180 ثانية (3 دقايق)</option>
+                            <option value="300">300 ثانية (5 دقايق)</option>
+                        </select>
+                    </div>
+
+                    <div class="setting-group">
+                        <label>🔢 عدد الجولات:</label>
+                        <select id="spy-rounds-select">
+                            <option value="3">3 جولات</option>
+                            <option value="5" selected>5 جولات</option>
+                            <option value="10">10 جولات</option>
+                        </select>
+                    </div>
+
+                    <div class="setting-group">
+                        <label>📂 اختر الفئة:</label>
+                        <div id="spy-categories-selector" class="categories-selector">
+                            <!-- ستملأ بالجافاسكريبت -->
+                        </div>
+                    </div>
+
+                    <button id="spy-start-game-btn" class="btn btn-primary spy-btn">
+                        <span>ابدأ اللعبة</span>
+                        <span class="btn-icon">🚀</span>
+                    </button>
+                </div>
+
+                <div id="spy-waiting-message" style="display: none;">
+                    <p>في انتظار المضيف لبدء اللعبة...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== شاشة الكشف عن الدور ==================== -->
+    <div id="spy-role-screen" class="screen">
+        <div class="container">
+            <div class="spy-role-card">
+                <div class="round-badge">
+                    جولة <span id="spy-round-display">1</span> / <span id="spy-total-rounds-display">5</span>
+                </div>
+
+                <div class="role-reveal-container">
+                    <div id="spy-role-hidden" class="role-hidden">
+                        <div class="tap-icon">👆</div>
+                        <h2>اضغط لكشف دورك</h2>
+                        <p class="role-hint">تأكد إن محدش شايف الشاشة!</p>
+                    </div>
+
+                    <div id="spy-role-revealed" class="role-revealed" style="display: none;">
+                        <div id="spy-role-emoji" class="role-emoji">✅</div>
+                        <h2 id="spy-role-title" class="role-title">أنت لاعب عادي</h2>
+                        <div id="spy-role-word-container" class="role-word-container">
+                            <p class="role-category-label">الفئة: <span id="spy-role-category">---</span></p>
+                            <div class="role-word">
+                                <span id="spy-role-word">---</span>
+                            </div>
+                        </div>
+                        <button id="spy-hide-role-btn" class="btn btn-secondary spy-btn">
+                            <span>إخفاء وتأكيد</span>
+                            <span class="btn-icon">✅</span>
+                        </button>
+                    </div>
+
+                    <div id="spy-role-confirmed" class="role-confirmed" style="display: none;">
+                        <div class="confirmed-icon">✅</div>
+                        <h2>تم التأكيد!</h2>
+                        <p>في انتظار باقي اللاعبين...</p>
+                        <div id="spy-confirmed-count" class="confirmed-count">0 / 0</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== شاشة المناقشة (التايمر) ==================== -->
+    <div id="spy-discussion-screen" class="screen">
+        <div class="container">
+            <div class="spy-discussion-card">
+                <div class="discussion-header">
+                    <h2>🗣️ وقت المناقشة!</h2>
+                    <div class="round-badge">
+                        جولة <span id="spy-discussion-round">1</span> / <span id="spy-discussion-total">5</span>
+                    </div>
+                </div>
+
+                <div class="timer-container">
+                    <div class="timer-circle">
+                        <svg class="timer-svg" viewBox="0 0 100 100">
+                            <circle class="timer-bg" cx="50" cy="50" r="45"></circle>
+                            <circle id="spy-timer-progress" class="timer-progress" cx="50" cy="50" r="45"></circle>
+                        </svg>
+                        <div class="timer-text">
+                            <span id="spy-timer-display" class="timer-big">2:00</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="discussion-info">
+                    <p id="spy-discussion-category-label" class="category-badge">
+                        📂 الفئة: <strong id="spy-discussion-category">---</strong>
+                    </p>
+                    <p id="spy-your-word-reminder" class="word-reminder" style="display:none;">
+                        🔑 كلمتك: <strong id="spy-your-word-text">---</strong>
+                    </p>
+                    <p id="spy-you-are-spy-reminder" class="spy-reminder" style="display:none;">
+                        🕵️ أنت الجاسوس! حاول تعرف الكلمة!
+                    </p>
+                </div>
+
+                <div class="discussion-tip">
+                    <p>💡 اسأل أسئلة ذكية عشان تكتشف مين الجاسوس!</p>
+                    <p>⚠️ الجاسوس بيحاول يعرف الكلمة من كلامكم!</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== شاشة التصويت ==================== -->
+    <div id="spy-voting-screen" class="screen">
+        <div class="container">
+            <div class="spy-voting-card">
+                <h2>🗳️ وقت التصويت!</h2>
+                <p class="voting-subtitle">مين تفتكر الجاسوس؟</p>
+
+                <div id="spy-voting-players" class="voting-players-grid">
+                    <!-- ستملأ بالجافاسكريبت -->
+                </div>
+
+                <button id="spy-submit-vote-btn" class="btn btn-primary spy-btn" disabled>
+                    <span>تأكيد التصويت</span>
+                    <span class="btn-icon">🗳️</span>
+                </button>
+
+                <div id="spy-waiting-votes" class="waiting-votes" style="display: none;">
+                    <p>في انتظار باقي اللاعبين للتصويت...</p>
+                    <div id="spy-votes-count" class="confirmed-count">0 / 0</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== شاشة تخمين الجاسوس ==================== -->
+    <div id="spy-guess-screen" class="screen">
+        <div class="container">
+            <div class="spy-guess-card">
+                <h2>🕵️ الجاسوس يحاول يخمن!</h2>
+                <p class="guess-subtitle" id="spy-guess-subtitle">الجاسوس عنده فرصة يخمن الكلمة الصح!</p>
+
+                <div id="spy-guess-container" style="display:none;">
+                    <p class="guess-category">الفئة: <strong id="spy-guess-category">---</strong></p>
+                    <div class="guess-options" id="spy-guess-options">
+                        <!-- ستملأ بالجافاسكريبت -->
+                    </div>
+                    <button id="spy-submit-guess-btn" class="btn btn-primary spy-btn" disabled>
+                        <span>تأكيد التخمين</span>
+                        <span class="btn-icon">🎯</span>
+                    </button>
+                </div>
+
+                <div id="spy-guess-waiting" style="display:none;">
+                    <div class="spy-waiting-animation">
+                        <span>🕵️</span>
+                    </div>
+                    <p>الجاسوس بيختار... استنى!</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== شاشة نتيجة الجولة ==================== -->
+    <div id="spy-round-result-screen" class="screen">
+        <div class="container">
+            <div class="spy-result-card">
+                <div id="spy-result-icon" class="result-icon">🎉</div>
+                <h2 id="spy-result-title" class="result-title">النتيجة!</h2>
+                <p id="spy-result-message" class="result-message">---</p>
+
+                <div class="result-details">
+                    <div class="result-detail-item">
+                        <span class="detail-label">الكلمة كانت:</span>
+                        <span id="spy-result-word" class="detail-value">---</span>
+                    </div>
+                    <div class="result-detail-item">
+                        <span class="detail-label">الفئة:</span>
+                        <span id="spy-result-category" class="detail-value">---</span>
+                    </div>
+                    <div class="result-detail-item">
+                        <span class="detail-label">الجاسوس/الجواسيس:</span>
+                        <span id="spy-result-spies" class="detail-value spy-name">---</span>
+                    </div>
+                </div>
+
+                <div class="round-scores" id="spy-round-scores">
+                    <!-- ستملأ بالجافاسكريبت -->
+                </div>
+
+                <div id="spy-host-next-controls" style="display:none;">
+                    <button id="spy-next-round-btn" class="btn btn-primary spy-btn">
+                        <span>الجولة التالية</span>
+                        <span class="btn-icon">➡️</span>
+                    </button>
+                </div>
+                <div id="spy-waiting-next" style="display:none;">
+                    <p>في انتظار المضيف للجولة التالية...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== شاشة النتائج النهائية ==================== -->
+    <div id="spy-final-screen" class="screen">
+        <div class="container">
+            <div class="results-card final-results spy-card">
+                <h1>🏆 النتائج النهائية 🏆</h1>
+                <div id="spy-podium" class="podium"></div>
+
+                <div class="leaderboard">
+                    <h3>ترتيب اللاعبين</h3>
+                    <ul id="spy-leaderboard-list"></ul>
+                </div>
+
+                <div class="results-actions">
+                    <button id="spy-go-home-btn" class="btn btn-secondary">
+                        <span>العودة للرئيسية</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- تذييل الصفحة -->
+    <footer class="game-footer">
+        <p>Developed by <strong>Abdelrahman Ali</strong></p>
+    </footer>
+
+    <!-- Toast -->
+    <div id="spy-toast" class="toast"></div>
+
+    <!-- Socket.IO Client -->
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="spy-app.js"></script>
+</body>
+
+</html>

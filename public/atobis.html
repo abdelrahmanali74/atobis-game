@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description"
+        content="لعبة أتوبيس كومبليت أونلاين - العب لعبة ولد بنت جماد حيوان مع أصدقائك في نفس الوقت. لعبة جماعية عربية ممتعة ومجانية.">
+    <title>أتوبيس كومبليت | لعبة ولد بنت جماد حيوان أونلاين</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        .back-home-btn {
+            position: fixed;
+            top: 1.25rem;
+            right: 1.25rem;
+            z-index: 9999;
+            width: 52px;
+            height: 52px;
+            border-radius: 50%;
+            border: 2px solid var(--card-border);
+            background: var(--card-bg);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: var(--transition);
+            box-shadow: var(--shadow-md);
+            text-decoration: none;
+            font-size: 1.4rem;
+        }
+
+        .back-home-btn:hover {
+            transform: scale(1.12);
+            box-shadow: var(--shadow-lg), var(--shadow-glow);
+            border-color: var(--accent-primary);
+        }
+
+        @media (max-width: 768px) {
+            .back-home-btn {
+                width: 44px;
+                height: 44px;
+                top: 1rem;
+                right: 1rem;
+                font-size: 1.2rem;
+            }
+        }
+    </style>
+</head>
+
+<body data-theme="dark">
+    <!-- زرار تبديل الثيم -->
+    <button id="theme-toggle" class="theme-toggle" title="تبديل الوضع الليلي/النهاري">
+        <span class="theme-icon">🌙</span>
+    </button>
+
+    <!-- زرار العودة للرئيسية -->
+    <a href="/" class="back-home-btn" title="العودة للرئيسية">
+        <span>🏠</span>
+    </a>
+
+    <!-- شاشة البداية -->
+    <div id="start-screen" class="screen active">
+        <div class="container">
+            <div class="logo-container">
+                <div class="bus-icon">🚌</div>
+                <h1 class="game-title">أتوبيس كومبليت</h1>
+                <p class="game-subtitle">العب مع أصدقائك في نفس الوقت!</p>
+            </div>
+
+            <div class="start-card">
+                <div class="input-group">
+                    <label for="player-name">اسم اللاعب</label>
+                    <input type="text" id="player-name" placeholder="أدخل اسمك هنا" maxlength="20">
+                </div>
+
+                <div class="input-group">
+                    <label for="room-code">كود الغرفة (اختياري)</label>
+                    <input type="text" id="room-code" placeholder="اترك فارغاً لإنشاء غرفة جديدة" maxlength="6">
+                </div>
+
+                <button id="start-btn" class="btn btn-primary">
+                    <span>ابدأ اللعب</span>
+                    <span class="btn-icon">🎮</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- شاشة الانتظار -->
+    <div id="waiting-screen" class="screen">
+        <div class="container">
+            <div class="waiting-card">
+                <h2>في انتظار اللاعبين...</h2>
+                <div class="room-info">
+                    <p>كود الغرفة:</p>
+                    <div class="room-code-display">
+                        <span id="display-room-code">------</span>
+                        <button id="copy-code-btn" class="btn-icon-small" title="نسخ الكود">📋</button>
+                    </div>
+                </div>
+
+                <div class="players-list">
+                    <h3>اللاعبين المتصلين (<span id="players-count">0</span>)</h3>
+                    <div id="players-container"></div>
+                </div>
+
+                <!-- خيارات اللعبة (تظهر للمضيف فقط) -->
+                <div id="host-controls" class="host-controls" style="display: none;">
+                    <h3>⚙️ إعدادات اللعبة</h3>
+
+                    <div class="setting-group">
+                        <label>عدد الجولات:</label>
+                        <select id="rounds-select">
+                            <option value="3">3 جولات</option>
+                            <option value="5" selected>5 جولات</option>
+                            <option value="10">10 جولات</option>
+                        </select>
+                    </div>
+
+                    <!-- اختيار الكاتيجوريز -->
+                    <div class="setting-group">
+                        <label>📂 اختر الفئات:</label>
+                        <p class="categories-hint">اختر الفئات اللي عايز تلعب بيها (على الأقل 3)</p>
+                        <div id="categories-selector" class="categories-selector">
+                            <!-- ستملأ بالجافاسكريبت -->
+                        </div>
+                    </div>
+
+                    <button id="start-game-btn" class="btn btn-primary">
+                        <span>ابدأ اللعبة</span>
+                        <span class="btn-icon">🚀</span>
+                    </button>
+                </div>
+
+                <div id="waiting-message" style="display: none;">
+                    <p>في انتظار المضيف لبدء اللعبة...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- شاشة اللعب -->
+    <div id="game-screen" class="screen">
+        <div class="container">
+            <div class="game-header">
+                <div class="header-info">
+                    <div class="round-info">
+                        <span class="label">جولة:</span>
+                        <span id="round-display">1 / 5</span>
+                    </div>
+                    <div class="current-letter">
+                        <span class="label">الحرف:</span>
+                        <span id="current-letter" class="letter-display">?</span>
+                    </div>
+                    <div class="timer">
+                        <span class="label">الوقت:</span>
+                        <span id="timer" class="timer-display">00:00</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="game-card">
+                <form id="game-form">
+                    <div class="form-grid" id="game-inputs-grid">
+                        <!-- سيتم تعبئة الحقول ديناميكياً من الجافاسكريبت -->
+                    </div>
+
+                    <button type="submit" id="finish-btn" class="btn btn-success">
+                        <span>خلصت! 🎉</span>
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- شاشة تصحيح النتائج (بين الجولات) -->
+    <div id="scoring-screen" class="screen">
+        <div class="container wide-container">
+            <div class="results-card">
+                <h2>📝 تصحيح النتائج - الجولة <span id="scoring-round-num"></span></h2>
+
+                <div class="table-responsive">
+                    <table id="scoring-table" class="scoring-table">
+                        <thead id="scoring-thead">
+                            <tr>
+                                <th>اللاعب</th>
+                                <!-- ستملأ ديناميكياً -->
+                                <th>المجموع</th>
+                            </tr>
+                        </thead>
+                        <tbody id="scoring-body">
+                            <!-- سيتم تعبئة الجدول بالجافاسكريبت -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="results-actions">
+                    <div id="host-scoring-controls" style="display: none;">
+                        <button id="next-round-btn" class="btn btn-primary">
+                            <span>الجولة التالية</span>
+                            <span class="btn-icon">➡️</span>
+                        </button>
+                    </div>
+                    <div id="waiting-host-scoring" style="display: none;">
+                        <p>في انتظار المضيف لتأكيد النتائج...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- شاشة النتائج النهائية -->
+    <div id="final-screen" class="screen">
+        <div class="container">
+            <div class="results-card final-results">
+                <h1>🏆 الفائزون 🏆</h1>
+                <div id="podium" class="podium"></div>
+
+                <div class="leaderboard">
+                    <h3>ترتيب اللاعبين</h3>
+                    <ul id="leaderboard-list"></ul>
+                </div>
+
+                <div class="results-actions">
+                    <button id="go-home-btn" class="btn btn-secondary">
+                        <span>العودة للرئيسية</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- تذييل الصفحة -->
+    <footer class="game-footer">
+        <p>Developed by <strong>Abdelrahman Ali</strong></p>
+    </footer>
+
+    <!-- Toast للإشعارات -->
+    <div id="toast" class="toast"></div>
+
+    <!-- Socket.IO Client -->
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="app.js"></script>
+</body>
+
+</html>

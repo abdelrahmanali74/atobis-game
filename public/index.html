@@ -5,12 +5,322 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description"
-        content="لعبة أتوبيس كومبليت أونلاين - العب لعبة ولد بنت جماد حيوان مع أصدقائك في نفس الوقت. لعبة جماعية عربية ممتعة ومجانية.">
-    <title>أتوبيس كومبليت | لعبة ولد بنت جماد حيوان أونلاين</title>
+        content="ألعاب جماعية أونلاين - العب أتوبيس كومبليت ولعبة الجاسوس مع أصدقائك! ألعاب عربية ممتعة ومجانية.">
+    <title>ألعاب أونلاين | أتوبيس كومبليت و لعبة الجاسوس</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
+    <style>
+        /* ==================== Landing Page Styles ==================== */
+        .landing-screen {
+            display: flex;
+            min-height: 100vh;
+            padding: 2rem 1rem;
+            align-items: center;
+            justify-content: center;
+            animation: fadeIn 0.5s ease-in-out;
+        }
+
+        .landing-container {
+            width: 100%;
+            max-width: 900px;
+            margin: 0 auto;
+            text-align: center;
+        }
+
+        .landing-logo {
+            margin-bottom: 3rem;
+            animation: bounceIn 0.8s ease-out;
+        }
+
+        .landing-logo .main-icon {
+            font-size: 4rem;
+            display: inline-block;
+            animation: float 3s ease-in-out infinite;
+        }
+
+        @keyframes float {
+
+            0%,
+            100% {
+                transform: translateY(0px);
+            }
+
+            50% {
+                transform: translateY(-15px);
+            }
+        }
+
+        .landing-title {
+            font-size: 3rem;
+            font-weight: 900;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 30%, #f093fb 60%, #e74c3c 100%);
+            background-size: 300% auto;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            animation: gradientFlow 4s ease infinite;
+            margin-bottom: 0.5rem;
+        }
+
+        @keyframes gradientFlow {
+            0% {
+                background-position: 0% center;
+            }
+
+            50% {
+                background-position: 100% center;
+            }
+
+            100% {
+                background-position: 0% center;
+            }
+        }
+
+        .landing-subtitle {
+            font-size: 1.2rem;
+            color: var(--text-secondary);
+            font-weight: 400;
+        }
+
+        /* Game Cards Grid */
+        .games-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 2rem;
+            margin-top: 2rem;
+        }
+
+        .game-card-link {
+            text-decoration: none;
+            color: inherit;
+        }
+
+        .game-select-card {
+            background: var(--card-bg);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 2px solid var(--card-border);
+            border-radius: var(--radius-xl);
+            padding: 3rem 2rem;
+            box-shadow: var(--shadow-lg);
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .game-select-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            transition: opacity 0.4s ease;
+            z-index: 0;
+        }
+
+        .game-select-card.atobis-card::before {
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.08), rgba(118, 75, 162, 0.08));
+        }
+
+        .game-select-card.spy-card::before {
+            background: linear-gradient(135deg, rgba(231, 76, 60, 0.08), rgba(243, 156, 18, 0.08));
+        }
+
+        .game-select-card:hover::before {
+            opacity: 1;
+        }
+
+        .game-select-card:hover {
+            transform: translateY(-8px) scale(1.02);
+            box-shadow: var(--shadow-lg), 0 20px 60px rgba(0, 0, 0, 0.2);
+        }
+
+        .game-select-card.atobis-card:hover {
+            border-color: rgba(102, 126, 234, 0.5);
+            box-shadow: var(--shadow-lg), 0 0 40px rgba(102, 126, 234, 0.2);
+        }
+
+        .game-select-card.spy-card:hover {
+            border-color: rgba(231, 76, 60, 0.5);
+            box-shadow: var(--shadow-lg), 0 0 40px rgba(231, 76, 60, 0.2);
+        }
+
+        .game-select-card>* {
+            position: relative;
+            z-index: 1;
+        }
+
+        .card-icon {
+            font-size: 5rem;
+            margin-bottom: 1.5rem;
+            display: inline-block;
+        }
+
+        .atobis-card .card-icon {
+            animation: busMove 2s ease-in-out infinite;
+        }
+
+        .spy-card .card-icon {
+            animation: spyPeek 2.5s ease-in-out infinite;
+        }
+
+        @keyframes spyPeek {
+
+            0%,
+            100% {
+                transform: scale(1) rotate(0deg);
+            }
+
+            25% {
+                transform: scale(1.1) rotate(-5deg);
+            }
+
+            50% {
+                transform: scale(1) rotate(0deg);
+            }
+
+            75% {
+                transform: scale(1.1) rotate(5deg);
+            }
+        }
+
+        .card-title {
+            font-size: 2rem;
+            font-weight: 900;
+            margin-bottom: 0.75rem;
+        }
+
+        .atobis-card .card-title {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .spy-card .card-title {
+            background: linear-gradient(135deg, #e74c3c, #f39c12);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .card-description {
+            font-size: 1rem;
+            color: var(--text-secondary);
+            line-height: 1.8;
+            margin-bottom: 1.5rem;
+        }
+
+        .card-features {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            justify-content: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .feature-tag {
+            font-size: 0.85rem;
+            padding: 0.4rem 1rem;
+            border-radius: 50px;
+            font-weight: 600;
+        }
+
+        .atobis-card .feature-tag {
+            background: rgba(102, 126, 234, 0.12);
+            color: var(--accent-primary);
+            border: 1px solid rgba(102, 126, 234, 0.2);
+        }
+
+        .spy-card .feature-tag {
+            background: rgba(231, 76, 60, 0.12);
+            color: #e74c3c;
+            border: 1px solid rgba(231, 76, 60, 0.2);
+        }
+
+        .play-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.75rem 2rem;
+            border-radius: var(--radius-md);
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: white;
+            border: none;
+            cursor: pointer;
+            transition: var(--transition);
+            font-family: 'Cairo', sans-serif;
+        }
+
+        .atobis-card .play-btn {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+        }
+
+        .spy-card .play-btn {
+            background: linear-gradient(135deg, #e74c3c, #c0392b);
+        }
+
+        .play-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+        }
+
+        /* New badge */
+        .new-badge {
+            position: absolute;
+            top: 1rem;
+            left: 1rem;
+            background: linear-gradient(135deg, #e74c3c, #f39c12);
+            color: white;
+            padding: 0.3rem 1rem;
+            border-radius: 50px;
+            font-size: 0.8rem;
+            font-weight: 900;
+            z-index: 2;
+            animation: badgePulse 2s ease-in-out infinite;
+        }
+
+        @keyframes badgePulse {
+
+            0%,
+            100% {
+                transform: scale(1);
+            }
+
+            50% {
+                transform: scale(1.05);
+            }
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .landing-title {
+                font-size: 2.2rem;
+            }
+
+            .games-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .game-select-card {
+                padding: 2rem 1.5rem;
+            }
+
+            .card-icon {
+                font-size: 4rem;
+            }
+
+            .card-title {
+                font-size: 1.6rem;
+            }
+        }
+    </style>
 </head>
 
 <body data-theme="dark">
@@ -19,174 +329,62 @@
         <span class="theme-icon">🌙</span>
     </button>
 
-    <!-- شاشة البداية -->
-    <div id="start-screen" class="screen active">
-        <div class="container">
-            <div class="logo-container">
-                <div class="bus-icon">🚌</div>
-                <h1 class="game-title">أتوبيس كومبليت</h1>
-                <p class="game-subtitle">العب مع أصدقائك في نفس الوقت!</p>
+    <!-- صفحة الهبوط -->
+    <div class="landing-screen">
+        <div class="landing-container">
+            <div class="landing-logo">
+                <div class="main-icon">🎮</div>
+                <h1 class="landing-title">ألعاب أونلاين</h1>
+                <p class="landing-subtitle">اختار لعبتك والعب مع أصدقائك في نفس الوقت! 🎯</p>
             </div>
 
-            <div class="start-card">
-                <div class="input-group">
-                    <label for="player-name">اسم اللاعب</label>
-                    <input type="text" id="player-name" placeholder="أدخل اسمك هنا" maxlength="20">
-                </div>
-
-                <div class="input-group">
-                    <label for="room-code">كود الغرفة (اختياري)</label>
-                    <input type="text" id="room-code" placeholder="اترك فارغاً لإنشاء غرفة جديدة" maxlength="6">
-                </div>
-
-                <button id="start-btn" class="btn btn-primary">
-                    <span>ابدأ اللعب</span>
-                    <span class="btn-icon">🎮</span>
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <!-- شاشة الانتظار -->
-    <div id="waiting-screen" class="screen">
-        <div class="container">
-            <div class="waiting-card">
-                <h2>في انتظار اللاعبين...</h2>
-                <div class="room-info">
-                    <p>كود الغرفة:</p>
-                    <div class="room-code-display">
-                        <span id="display-room-code">------</span>
-                        <button id="copy-code-btn" class="btn-icon-small" title="نسخ الكود">📋</button>
-                    </div>
-                </div>
-
-                <div class="players-list">
-                    <h3>اللاعبين المتصلين (<span id="players-count">0</span>)</h3>
-                    <div id="players-container"></div>
-                </div>
-
-                <!-- خيارات اللعبة (تظهر للمضيف فقط) -->
-                <div id="host-controls" class="host-controls" style="display: none;">
-                    <h3>⚙️ إعدادات اللعبة</h3>
-
-                    <div class="setting-group">
-                        <label>عدد الجولات:</label>
-                        <select id="rounds-select">
-                            <option value="3">3 جولات</option>
-                            <option value="5" selected>5 جولات</option>
-                            <option value="10">10 جولات</option>
-                        </select>
-                    </div>
-
-                    <!-- اختيار الكاتيجوريز -->
-                    <div class="setting-group">
-                        <label>📂 اختر الفئات:</label>
-                        <p class="categories-hint">اختر الفئات اللي عايز تلعب بيها (على الأقل 3)</p>
-                        <div id="categories-selector" class="categories-selector">
-                            <!-- ستملأ بالجافاسكريبت -->
+            <div class="games-grid">
+                <!-- أتوبيس كومبليت -->
+                <a href="/atobis" class="game-card-link">
+                    <div class="game-select-card atobis-card">
+                        <div class="card-icon">🚌</div>
+                        <h2 class="card-title">أتوبيس كومبليت</h2>
+                        <p class="card-description">
+                            لعبة ولد بنت جماد حيوان الكلاسيكية!
+                            <br>
+                            ادخل حرف واملى الفئات في أسرع وقت 🚀
+                        </p>
+                        <div class="card-features">
+                            <span class="feature-tag">👥 جماعية</span>
+                            <span class="feature-tag">⚡ سريعة</span>
+                            <span class="feature-tag">📂 12 فئة</span>
+                            <span class="feature-tag">🏆 نقاط</span>
                         </div>
-                    </div>
-
-                    <button id="start-game-btn" class="btn btn-primary">
-                        <span>ابدأ اللعبة</span>
-                        <span class="btn-icon">🚀</span>
-                    </button>
-                </div>
-
-                <div id="waiting-message" style="display: none;">
-                    <p>في انتظار المضيف لبدء اللعبة...</p>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- شاشة اللعب -->
-    <div id="game-screen" class="screen">
-        <div class="container">
-            <div class="game-header">
-                <div class="header-info">
-                    <div class="round-info">
-                        <span class="label">جولة:</span>
-                        <span id="round-display">1 / 5</span>
-                    </div>
-                    <div class="current-letter">
-                        <span class="label">الحرف:</span>
-                        <span id="current-letter" class="letter-display">?</span>
-                    </div>
-                    <div class="timer">
-                        <span class="label">الوقت:</span>
-                        <span id="timer" class="timer-display">00:00</span>
-                    </div>
-                </div>
-            </div>
-
-            <div class="game-card">
-                <form id="game-form">
-                    <div class="form-grid" id="game-inputs-grid">
-                        <!-- سيتم تعبئة الحقول ديناميكياً من الجافاسكريبت -->
-                    </div>
-
-                    <button type="submit" id="finish-btn" class="btn btn-success">
-                        <span>خلصت! 🎉</span>
-                    </button>
-                </form>
-            </div>
-        </div>
-    </div>
-
-    <!-- شاشة تصحيح النتائج (بين الجولات) -->
-    <div id="scoring-screen" class="screen">
-        <div class="container wide-container">
-            <div class="results-card">
-                <h2>📝 تصحيح النتائج - الجولة <span id="scoring-round-num"></span></h2>
-
-                <div class="table-responsive">
-                    <table id="scoring-table" class="scoring-table">
-                        <thead id="scoring-thead">
-                            <tr>
-                                <th>اللاعب</th>
-                                <!-- ستملأ ديناميكياً -->
-                                <th>المجموع</th>
-                            </tr>
-                        </thead>
-                        <tbody id="scoring-body">
-                            <!-- سيتم تعبئة الجدول بالجافاسكريبت -->
-                        </tbody>
-                    </table>
-                </div>
-
-                <div class="results-actions">
-                    <div id="host-scoring-controls" style="display: none;">
-                        <button id="next-round-btn" class="btn btn-primary">
-                            <span>الجولة التالية</span>
-                            <span class="btn-icon">➡️</span>
+                        <button class="play-btn">
+                            <span>العب دلوقتي</span>
+                            <span>🚌</span>
                         </button>
                     </div>
-                    <div id="waiting-host-scoring" style="display: none;">
-                        <p>في انتظار المضيف لتأكيد النتائج...</p>
+                </a>
+
+                <!-- لعبة الجاسوس -->
+                <a href="/spy" class="game-card-link">
+                    <div class="game-select-card spy-card">
+                        <div class="new-badge">🆕 جديدة!</div>
+                        <div class="card-icon">🕵️</div>
+                        <h2 class="card-title">لعبة الجاسوس</h2>
+                        <p class="card-description">
+                            في جاسوس بينكم! اكتشفوه قبل ما يعرف الكلمة السرية!
+                            <br>
+                            مناقشة، تصويت، وتخمين 🔍
+                        </p>
+                        <div class="card-features">
+                            <span class="feature-tag">🕵️ أمبوستر</span>
+                            <span class="feature-tag">🗳️ تصويت</span>
+                            <span class="feature-tag">🎯 10 فئات</span>
+                            <span class="feature-tag">⏱️ تايمر</span>
+                        </div>
+                        <button class="play-btn">
+                            <span>العب دلوقتي</span>
+                            <span>🕵️</span>
+                        </button>
                     </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- شاشة النتائج النهائية -->
-    <div id="final-screen" class="screen">
-        <div class="container">
-            <div class="results-card final-results">
-                <h1>🏆 الفائزون 🏆</h1>
-                <div id="podium" class="podium"></div>
-
-                <div class="leaderboard">
-                    <h3>ترتيب اللاعبين</h3>
-                    <ul id="leaderboard-list"></ul>
-                </div>
-
-                <div class="results-actions">
-                    <button id="go-home-btn" class="btn btn-secondary">
-                        <span>العودة للرئيسية</span>
-                    </button>
-                </div>
+                </a>
             </div>
         </div>
     </div>
@@ -196,12 +394,32 @@
         <p>Developed by <strong>Abdelrahman Ali</strong></p>
     </footer>
 
-    <!-- Toast للإشعارات -->
-    <div id="toast" class="toast"></div>
+    <script>
+        // Theme management
+        function initTheme() {
+            const savedTheme = localStorage.getItem('atobis-theme') || 'dark';
+            document.body.setAttribute('data-theme', savedTheme);
+            updateThemeIcon(savedTheme);
+        }
 
-    <!-- Socket.IO Client -->
-    <script src="/socket.io/socket.io.js"></script>
-    <script src="app.js"></script>
+        function toggleTheme() {
+            const current = document.body.getAttribute('data-theme');
+            const next = current === 'dark' ? 'light' : 'dark';
+            document.body.setAttribute('data-theme', next);
+            localStorage.setItem('atobis-theme', next);
+            updateThemeIcon(next);
+        }
+
+        function updateThemeIcon(theme) {
+            const icon = document.querySelector('.theme-icon');
+            if (icon) {
+                icon.textContent = theme === 'dark' ? '☀️' : '🌙';
+            }
+        }
+
+        initTheme();
+        document.getElementById('theme-toggle').addEventListener('click', toggleTheme);
+    </script>
 </body>
 
 </html>
