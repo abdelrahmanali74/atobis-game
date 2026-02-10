@@ -344,18 +344,49 @@ io.on('connection', (socket) => {
         });
     }
 
-    // Host updates scores and proceeds
-    socket.on('update-scores-and-next', ({ roomCode, playerScores }) => {
+    // Host updates a single score item (Real-time Broadcast)
+    socket.on('update-single-score', ({ roomCode, playerId, category, score }) => {
         const room = getRoomByCode(roomCode);
         if (!room || room.host !== socket.id) return;
 
-        // Update scores based on host editing
-        playerScores.forEach(update => {
-            const player = room.players.find(p => p.id === update.id);
-            if (player) {
-                player.roundScore = update.roundScore;
-                player.totalScore = (player.totalScore || 0) + player.roundScore;
-            }
+        const player = room.players.find(p => p.id === playerId);
+        if (player) {
+            // Initialize scores object if missing
+            if (!player.scores) player.scores = {};
+
+            // Update specific category score
+            player.scores[category] = score;
+
+            // Recalculate round total
+            let roundTotal = 0;
+            const categories = ['boy', 'girl', 'animal', 'plant', 'object', 'country'];
+            categories.forEach(cat => {
+                // Use stored score or standard default logic if not set yet
+                if (player.scores[cat] !== undefined) {
+                    roundTotal += player.scores[cat];
+                }
+            });
+            player.roundScore = roundTotal;
+
+            // Broadcast update to everyone
+            io.to(roomCode).emit('score-updated', {
+                playerId,
+                category,
+                score,
+                roundScore: roundTotal
+            });
+        }
+    });
+
+    // Host finishes scoring and proceeds
+    socket.on('update-scores-and-next', ({ roomCode }) => {
+        const room = getRoomByCode(roomCode);
+        if (!room || room.host !== socket.id) return;
+
+        // Commit round scores to total scores (already updated via update-single-score/calc)
+        room.players.forEach(p => {
+            // Just take the current roundScore state
+            p.totalScore = (p.totalScore || 0) + (p.roundScore || 0);
         });
 
         // Check if game over

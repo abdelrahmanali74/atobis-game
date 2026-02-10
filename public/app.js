@@ -277,6 +277,32 @@ function disableInputs() {
 }
 
 // ==================== Scoring Screen ====================
+// Score Updated (Real-time)
+socket.on('score-updated', (data) => {
+    // Update local state if needed (optional since we trust server broadcast)
+
+    // Update UI
+    const totalCell = document.getElementById(`total-${data.playerId}`);
+    if (totalCell) {
+        totalCell.textContent = data.roundScore;
+        // Animation effect
+        totalCell.style.color = '#fff';
+        setTimeout(() => totalCell.style.color = '', 300);
+    }
+
+    // Update the specific cell badge if we are not the host (host already sees toggle update)
+    if (!gameState.isHost) {
+        // Find the cell for this category using data attributes
+        const scoreBadge = document.querySelector(`.score-badge[data-player-id="${data.playerId}"][data-category="${data.category}"]`);
+        if (scoreBadge) {
+            scoreBadge.textContent = data.score;
+            scoreBadge.className = `score-badge score-${data.score}`;
+        }
+    }
+});
+
+
+// ==================== Scoring Screen ====================
 function showScoringScreen(data) {
     showScreen('scoring-screen');
     document.getElementById('scoring-round-num').textContent = data.currentRound;
@@ -292,6 +318,7 @@ function showScoringScreen(data) {
 
         // Name
         const nameCell = document.createElement('td');
+        // Add ID to name cell for easy access if needed
         nameCell.innerHTML = `<strong style="color: #ffd700">${player.name}</strong>`;
         row.appendChild(nameCell);
 
@@ -302,18 +329,14 @@ function showScoringScreen(data) {
             const cell = document.createElement('td');
             const answerText = player.answers[cat] || '-';
 
-            // Check if server validation passed (simple check)
-            // Implementation detail: server sends NO details on score per field in 'scoring-phase' currently
-            // We just have 'roundScore'.
-            // Better approach: Let host control entirely.
-
-            // Default logic
-            let defaultScore = 0;
+            // Default logic if not set
+            let currentScore = 0;
             if (answerText.trim() !== '-' && answerText.trim().length > 0) {
                 if (answerText.trim().toLowerCase().startsWith(gameState.currentLetter.toLowerCase())) {
-                    defaultScore = 10;
+                    currentScore = 10;
                 }
             }
+            // If server sent specific scores, use them (future proofing), currently we rely on defaults/updates.
 
             if (isHost) {
                 // Editable controls (Toggle Button)
@@ -325,10 +348,11 @@ function showScoringScreen(data) {
                 ansDiv.textContent = answerText;
 
                 const toggleBtn = document.createElement('button');
-                toggleBtn.className = `score-toggle score-${defaultScore}`;
-                toggleBtn.textContent = defaultScore;
-                toggleBtn.dataset.value = defaultScore;
+                toggleBtn.className = `score-toggle score-${currentScore}`;
+                toggleBtn.textContent = currentScore;
+                toggleBtn.dataset.value = currentScore;
                 toggleBtn.dataset.playerId = player.id;
+                toggleBtn.dataset.category = cat;
 
                 // Click to cycle: 0 -> 5 -> 10 -> 0
                 toggleBtn.addEventListener('click', () => {
@@ -338,14 +362,20 @@ function showScoringScreen(data) {
                     else if (currentVal === 5) nextVal = 10;
                     else nextVal = 0;
 
-                    // Update state
+                    // Update UI immediately for host
                     toggleBtn.dataset.value = nextVal;
                     toggleBtn.textContent = nextVal;
-
-                    // Update visual class
                     toggleBtn.className = `score-toggle score-${nextVal}`;
 
-                    // Recalculate totals
+                    // Send update to server
+                    socket.emit('update-single-score', {
+                        roomCode: gameState.roomCode,
+                        playerId: player.id,
+                        category: cat,
+                        score: nextVal
+                    });
+
+                    // Recalculate totals locally
                     calculateTotalsLocally();
                 });
 
@@ -353,18 +383,28 @@ function showScoringScreen(data) {
                 container.appendChild(toggleBtn);
                 cell.appendChild(container);
 
+                playerScoreSum += currentScore;
             } else {
                 // Non-host view
                 const container = document.createElement('div');
                 container.className = 'score-control-container';
+
                 const ansDiv = document.createElement('div');
                 ansDiv.className = 'answer-text';
                 ansDiv.textContent = answerText;
-                // Just show score badge if available, or just text
+
+                // Score Badge (Valid View)
+                const badge = document.createElement('span');
+                badge.className = `score-badge score-${currentScore}`;
+                badge.textContent = currentScore;
+                badge.dataset.playerId = player.id;
+                badge.dataset.category = cat;
+
                 container.appendChild(ansDiv);
+                container.appendChild(badge);
                 cell.appendChild(container);
 
-                playerScoreSum = player.roundScore; // Use server score for non-hosts initially
+                playerScoreSum = player.roundScore;
             }
             row.appendChild(cell);
         });
@@ -382,7 +422,7 @@ function showScoringScreen(data) {
     if (isHost) {
         document.getElementById('host-scoring-controls').style.display = 'block';
         document.getElementById('waiting-host-scoring').style.display = 'none';
-        calculateTotalsLocally(); // Initial calculation based on defaults
+        calculateTotalsLocally();
     } else {
         document.getElementById('host-scoring-controls').style.display = 'none';
         document.getElementById('waiting-host-scoring').style.display = 'block';
@@ -404,30 +444,8 @@ function calculateTotalsLocally() {
 
 // Next Round (Host)
 document.getElementById('next-round-btn').addEventListener('click', () => {
-    // Collect scores from DOM
-    const playerScores = [];
-    const rows = document.getElementById('scoring-body').querySelectorAll('tr');
-
-    // We need to map rows back to player IDs.
-    // The select elements have data-player-id.
-    // Let's iterate players from state to be safe.
-
-    gameState.scoringData.forEach(p => {
-        // Read from DOM totals which are updated by toggles
-        const totalCell = document.getElementById(`total-${p.id}`);
-        // If host, we trust the DOM calculation which comes from the selects
-        // If not host, this button isn't visible anyway
-        if (totalCell) {
-            playerScores.push({
-                id: p.id,
-                roundScore: parseInt(totalCell.textContent)
-            });
-        }
-    });
-
     socket.emit('update-scores-and-next', {
-        roomCode: gameState.roomCode,
-        playerScores
+        roomCode: gameState.roomCode
     });
 });
 

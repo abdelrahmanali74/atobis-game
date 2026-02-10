@@ -1406,6 +1406,36 @@ body {
     background: rgba(102, 126, 234, 0.7);
 }
 
+/* ==================== Score Badge (Non-Interactive) ==================== */
+.score-badge {
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+    width: 40px;
+    height: 35px;
+    border-radius: 8px;
+    font-weight: 900;
+    font-size: 0.9rem;
+    color: var(--text-primary);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+}
+
+.score-badge.score-0 {
+    background-color: #2d3436;
+    color: #636e72;
+}
+
+.score-badge.score-5 {
+    background-color: #fdcb6e;
+    color: #d35400;
+}
+
+.score-badge.score-10 {
+    background-color: #00b894;
+    color: white;
+}
+
 /* ==================== New Elements ==================== */
 
 /* Host Controls */
