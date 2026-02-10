@@ -22,6 +22,9 @@ app.use(express.static(path.join(__dirname, 'public')));
 // Game state
 const rooms = new Map();
 
+// Default categories
+const DEFAULT_CATEGORIES = ['boy', 'girl', 'animal', 'plant', 'object', 'country'];
+
 // Helper functions
 function generateRoomCode() {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
@@ -53,7 +56,8 @@ function createRoom(hostSocketId, hostName) {
         currentLetter: null,
         usedLetters: [],
         gameStartTime: null,
-        gameActive: false
+        gameActive: false,
+        categories: [...DEFAULT_CATEGORIES] // Dynamic categories
     };
     rooms.set(roomCode, room);
     return room;
@@ -101,43 +105,6 @@ function removePlayerFromRoom(socketId) {
     return null;
 }
 
-function calculateScore(player, room) {
-    let score = 0;
-    const answers = player.answers;
-
-    if (!answers) return 0;
-
-    Object.keys(answers).forEach(category => {
-        const answer = answers[category];
-        if (!answer) return;
-
-        // Check if answer starts with current letter
-        if (!answer.startsWith(room.currentLetter)) return;
-
-        // Count duplicate answers
-        const sameAnswers = room.players.filter(p =>
-            p.answers && p.answers[category] === answer
-        ).length;
-
-        if (sameAnswers === 1) {
-            score += 10; // Unique answer
-        } else {
-            score += 5; // Duplicate answer
-        }
-    });
-
-    // Bonus for finishing first
-    const sortedByTime = [...room.players]
-        .filter(p => p.finishTime !== null)
-        .sort((a, b) => a.finishTime - b.finishTime);
-
-    if (sortedByTime.length > 0 && sortedByTime[0].id === player.id) {
-        score += 10;
-    }
-
-    return score;
-}
-
 // Socket.IO connection handling
 io.on('connection', (socket) => {
     console.log(`✅ Player connected: ${socket.id}`);
@@ -177,7 +144,8 @@ io.on('connection', (socket) => {
             players: room.players,
             usedLetters: room.usedLetters,
             currentLetter: room.currentLetter,
-            gameActive: room.gameActive
+            gameActive: room.gameActive,
+            categories: room.categories
         });
 
         console.log(`👋 ${playerName} joined room: ${roomCode}`);
@@ -193,13 +161,19 @@ io.on('connection', (socket) => {
     });
 
     // Start game
-    socket.on('start-game', ({ roomCode, totalRounds }) => {
+    socket.on('start-game', ({ roomCode, totalRounds, categories }) => {
         const room = getRoomByCode(roomCode);
         if (!room || room.host !== socket.id) return;
 
         room.totalRounds = parseInt(totalRounds) || 5;
         room.currentRound = 1;
         room.usedLetters = [];
+        // Save the custom categories from the host
+        if (categories && Array.isArray(categories) && categories.length >= 3) {
+            room.categories = categories;
+        } else {
+            room.categories = [...DEFAULT_CATEGORIES];
+        }
         room.players.forEach(p => p.totalScore = 0);
 
         startRound(roomCode);
@@ -229,21 +203,26 @@ io.on('connection', (socket) => {
         room.roundStartTime = Date.now();
         room.roundState = 'playing';
 
-        // Reset round data
+        // Reset round data - use dynamic categories
+        const emptyAnswers = {};
+        room.categories.forEach(cat => { emptyAnswers[cat] = ''; });
+
         room.players.forEach(player => {
             player.finished = false;
-            player.answers = { boy: '', girl: '', animal: '', plant: '', object: '', country: '' };
+            player.answers = { ...emptyAnswers };
             player.roundScore = 0;
+            player.hasSubmitted = false;
         });
 
         io.to(roomCode).emit('round-started', {
             round: room.currentRound,
             totalRounds: room.totalRounds,
             letter: room.currentLetter,
-            startTime: room.roundStartTime
+            startTime: room.roundStartTime,
+            categories: room.categories
         });
 
-        console.log(`🎮 Round ${room.currentRound} started in room ${roomCode} with letter: ${room.currentLetter}`);
+        console.log(`🎮 Round ${room.currentRound} started in room ${roomCode} with letter: ${room.currentLetter} | Categories: ${room.categories.join(', ')}`);
     }
 
     // Player finished round (triggers stop for everyone)
@@ -260,21 +239,6 @@ io.on('connection', (socket) => {
 
         // Stop the round immediately for everyone
         room.roundState = 'scoring';
-
-        // Calculate initial scores (auto-scoring)
-        room.players.forEach(p => {
-            // If player didn't finish, their answers might be empty/partial (we rely on frontend to send current state)
-            // But here we only have the finisher's answers confirmed. 
-            // We need to ask everyone else for their answers OR rely on live updates (not implemented).
-            // Strategy: When one finishes, we broadcast "stop", clients send "submit-round-answers".
-        });
-
-        // Correction: The requester said "First one finishes -> move to results".
-        // Use a two-step process: 
-        // 1. Finisher sends 'finish-round'. 
-        // 2. Server tells everyone 'round-ended'. 
-        // 3. Everyone sends 'submit-answers'.
-        // 4. Server aggregates and sends 'scoring-phase'.
 
         io.to(roomCode).emit('round-ended', {
             finisher: player.name
@@ -309,21 +273,22 @@ io.on('connection', (socket) => {
                 })),
                 currentRound: room.currentRound,
                 totalRounds: room.totalRounds,
-                isHost: socket.id === room.host // logic helper
+                categories: room.categories,
+                isHost: socket.id === room.host
             });
         }
     });
 
     function calculateInitialScores(room) {
-        // Collect all answers for each category to check duplicates
-        const categories = ['boy', 'girl', 'animal', 'plant', 'object', 'country'];
+        // Use dynamic categories
+        const categories = room.categories;
 
         // Helper to normalize text
         const normalize = (text) => text ? text.trim().toLowerCase() : '';
 
         room.players.forEach(player => {
             player.roundScore = 0;
-            player.scores = {}; // Detailed scores per category
+            player.scores = {};
 
             categories.forEach(cat => {
                 const ans = normalize(player.answers[cat]);
@@ -351,17 +316,14 @@ io.on('connection', (socket) => {
 
         const player = room.players.find(p => p.id === playerId);
         if (player) {
-            // Initialize scores object if missing
             if (!player.scores) player.scores = {};
 
-            // Update specific category score
             player.scores[category] = score;
 
-            // Recalculate round total
+            // Recalculate round total using dynamic categories
             let roundTotal = 0;
-            const categories = ['boy', 'girl', 'animal', 'plant', 'object', 'country'];
+            const categories = room.categories;
             categories.forEach(cat => {
-                // Use stored score or standard default logic if not set yet
                 if (player.scores[cat] !== undefined) {
                     roundTotal += player.scores[cat];
                 }
@@ -383,9 +345,7 @@ io.on('connection', (socket) => {
         const room = getRoomByCode(roomCode);
         if (!room || room.host !== socket.id) return;
 
-        // Commit round scores to total scores (already updated via update-single-score/calc)
         room.players.forEach(p => {
-            // Just take the current roundScore state
             p.totalScore = (p.totalScore || 0) + (p.roundScore || 0);
         });
 
@@ -396,7 +356,6 @@ io.on('connection', (socket) => {
             });
             room.gameActive = false;
         } else {
-            // Next round
             room.currentRound++;
             startRound(roomCode);
         }
@@ -456,7 +415,8 @@ app.get('/stats', (req, res) => {
         rooms: Array.from(rooms.values()).map(room => ({
             code: room.code,
             players: room.players.length,
-            gameActive: room.gameActive
+            gameActive: room.gameActive,
+            categories: room.categories
         }))
     });
 });

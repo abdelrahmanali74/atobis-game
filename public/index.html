@@ -13,7 +13,12 @@
     <link rel="stylesheet" href="styles.css">
 </head>
 
-<body>
+<body data-theme="dark">
+    <!-- زرار تبديل الثيم -->
+    <button id="theme-toggle" class="theme-toggle" title="تبديل الوضع الليلي/النهاري">
+        <span class="theme-icon">🌙</span>
+    </button>
+
     <!-- شاشة البداية -->
     <div id="start-screen" class="screen active">
         <div class="container">
@@ -62,13 +67,24 @@
 
                 <!-- خيارات اللعبة (تظهر للمضيف فقط) -->
                 <div id="host-controls" class="host-controls" style="display: none;">
-                    <h3>إعدادات اللعبة</h3>
+                    <h3>⚙️ إعدادات اللعبة</h3>
+
                     <div class="setting-group">
                         <label>عدد الجولات:</label>
                         <select id="rounds-select">
-                            <option value="5">5 جولات</option>
+                            <option value="3">3 جولات</option>
+                            <option value="5" selected>5 جولات</option>
                             <option value="10">10 جولات</option>
                         </select>
+                    </div>
+
+                    <!-- اختيار الكاتيجوريز -->
+                    <div class="setting-group">
+                        <label>📂 اختر الفئات:</label>
+                        <p class="categories-hint">اختر الفئات اللي عايز تلعب بيها (على الأقل 3)</p>
+                        <div id="categories-selector" class="categories-selector">
+                            <!-- ستملأ بالجافاسكريبت -->
+                        </div>
                     </div>
 
                     <button id="start-game-btn" class="btn btn-primary">
@@ -106,35 +122,12 @@
 
             <div class="game-card">
                 <form id="game-form">
-                    <div class="form-grid">
-                        <div class="input-field">
-                            <label>👦 ولد</label>
-                            <input type="text" id="boy-input" class="game-input">
-                        </div>
-                        <div class="input-field">
-                            <label>👧 بنت</label>
-                            <input type="text" id="girl-input" class="game-input">
-                        </div>
-                        <div class="input-field">
-                            <label>🦁 حيوان</label>
-                            <input type="text" id="animal-input" class="game-input">
-                        </div>
-                        <div class="input-field">
-                            <label>🌿 نبات</label>
-                            <input type="text" id="plant-input" class="game-input">
-                        </div>
-                        <div class="input-field">
-                            <label>📦 جماد</label>
-                            <input type="text" id="object-input" class="game-input">
-                        </div>
-                        <div class="input-field">
-                            <label>🌍 بلد</label>
-                            <input type="text" id="country-input" class="game-input">
-                        </div>
+                    <div class="form-grid" id="game-inputs-grid">
+                        <!-- سيتم تعبئة الحقول ديناميكياً من الجافاسكريبت -->
                     </div>
 
                     <button type="submit" id="finish-btn" class="btn btn-success">
-                        <span>خلصت! 🎉</span> <!-- Button triggers finish-round -->
+                        <span>خلصت! 🎉</span>
                     </button>
                 </form>
             </div>
@@ -149,15 +142,10 @@
 
                 <div class="table-responsive">
                     <table id="scoring-table" class="scoring-table">
-                        <thead>
+                        <thead id="scoring-thead">
                             <tr>
                                 <th>اللاعب</th>
-                                <th>ولد</th>
-                                <th>بنت</th>
-                                <th>حيوان</th>
-                                <th>نبات</th>
-                                <th>جماد</th>
-                                <th>بلد</th>
+                                <!-- ستملأ ديناميكياً -->
                                 <th>المجموع</th>
                             </tr>
                         </thead>

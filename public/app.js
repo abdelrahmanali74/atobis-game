@@ -1,6 +1,51 @@
 // ==================== Socket.IO Connection ====================
 const socket = io();
 
+// ==================== All Available Categories ====================
+const ALL_CATEGORIES = {
+    boy: { label: '👦 ولد', key: 'boy', emoji: '👦' },
+    girl: { label: '👧 بنت', key: 'girl', emoji: '👧' },
+    animal: { label: '🦁 حيوان', key: 'animal', emoji: '🦁' },
+    plant: { label: '🌿 نبات', key: 'plant', emoji: '🌿' },
+    object: { label: '📦 جماد', key: 'object', emoji: '📦' },
+    country: { label: '🌍 بلد', key: 'country', emoji: '🌍' },
+    food: { label: '🍕 أكلة', key: 'food', emoji: '🍕' },
+    color: { label: '🎨 لون', key: 'color', emoji: '🎨' },
+    egcity: { label: '🏛️ مدينة مصرية', key: 'egcity', emoji: '🏛️' },
+    celebrity: { label: '⭐ مشهور', key: 'celebrity', emoji: '⭐' },
+    footballer: { label: '⚽ لاعب كرة قدم', key: 'footballer', emoji: '⚽' },
+    club: { label: '🏟️ اسم نادي', key: 'club', emoji: '🏟️' }
+};
+
+// Default categories (the original 6)
+const DEFAULT_CATEGORIES = ['boy', 'girl', 'animal', 'plant', 'object', 'country'];
+
+// ==================== Theme Management ====================
+function initTheme() {
+    const savedTheme = localStorage.getItem('atobis-theme') || 'dark';
+    document.body.setAttribute('data-theme', savedTheme);
+    updateThemeIcon(savedTheme);
+}
+
+function toggleTheme() {
+    const current = document.body.getAttribute('data-theme');
+    const next = current === 'dark' ? 'light' : 'dark';
+    document.body.setAttribute('data-theme', next);
+    localStorage.setItem('atobis-theme', next);
+    updateThemeIcon(next);
+}
+
+function updateThemeIcon(theme) {
+    const icon = document.querySelector('.theme-icon');
+    if (icon) {
+        icon.textContent = theme === 'dark' ? '☀️' : '🌙';
+    }
+}
+
+// Initialize theme on load
+initTheme();
+document.getElementById('theme-toggle').addEventListener('click', toggleTheme);
+
 // ==================== Game State ====================
 const gameState = {
     roomCode: null,
@@ -13,7 +58,8 @@ const gameState = {
     timerInterval: null,
     isHost: false,
     gameAnswers: {},
-    scoringData: [] // Stores player data during scoring phase
+    scoringData: [],
+    activeCategories: [...DEFAULT_CATEGORIES] // Which categories are currently in use
 };
 
 // ==================== Screen Management ====================
@@ -35,6 +81,76 @@ function showToast(message, type = 'success') {
     }, 3000);
 }
 
+// ==================== Categories Selector (Host) ====================
+function renderCategoriesSelector() {
+    const container = document.getElementById('categories-selector');
+    if (!container) return;
+
+    container.innerHTML = '';
+    Object.keys(ALL_CATEGORIES).forEach(key => {
+        const cat = ALL_CATEGORIES[key];
+        const isChecked = gameState.activeCategories.includes(key);
+
+        const item = document.createElement('label');
+        item.className = `category-chip ${isChecked ? 'active' : ''}`;
+        item.innerHTML = `
+            <input type="checkbox" value="${key}" ${isChecked ? 'checked' : ''} class="category-checkbox">
+            <span class="chip-emoji">${cat.emoji}</span>
+            <span class="chip-label">${cat.label.replace(cat.emoji + ' ', '')}</span>
+        `;
+
+        const checkbox = item.querySelector('input');
+        checkbox.addEventListener('change', () => {
+            if (checkbox.checked) {
+                if (!gameState.activeCategories.includes(key)) {
+                    gameState.activeCategories.push(key);
+                }
+                item.classList.add('active');
+            } else {
+                gameState.activeCategories = gameState.activeCategories.filter(c => c !== key);
+                item.classList.remove('active');
+            }
+        });
+
+        container.appendChild(item);
+    });
+}
+
+// ==================== Dynamic Game Form ====================
+function renderGameInputs(categories) {
+    const grid = document.getElementById('game-inputs-grid');
+    if (!grid) return;
+
+    grid.innerHTML = '';
+    categories.forEach(key => {
+        const cat = ALL_CATEGORIES[key];
+        if (!cat) return;
+        const div = document.createElement('div');
+        div.className = 'input-field';
+        div.innerHTML = `
+            <label>${cat.label}</label>
+            <input type="text" id="${key}-input" class="game-input" autocomplete="off">
+        `;
+        grid.appendChild(div);
+    });
+}
+
+// ==================== Dynamic Scoring Table Headers ====================
+function renderScoringHeaders(categories) {
+    const thead = document.getElementById('scoring-thead');
+    if (!thead) return;
+
+    let headerHTML = '<tr><th>اللاعب</th>';
+    categories.forEach(key => {
+        const cat = ALL_CATEGORIES[key];
+        if (cat) {
+            headerHTML += `<th>${cat.label.replace(cat.emoji + ' ', '')}</th>`;
+        }
+    });
+    headerHTML += '<th>المجموع</th></tr>';
+    thead.innerHTML = headerHTML;
+}
+
 // ==================== Start Screen ====================
 document.getElementById('start-btn').addEventListener('click', () => {
     const playerName = document.getElementById('player-name').value.trim();
@@ -48,10 +164,8 @@ document.getElementById('start-btn').addEventListener('click', () => {
     gameState.playerName = playerName;
 
     if (roomCode) {
-        // Join existing room
         socket.emit('join-room', { roomCode, playerName });
     } else {
-        // Create new room
         gameState.isHost = true;
         socket.emit('create-room', playerName);
     }
@@ -98,6 +212,9 @@ socket.on('round-started', (data) => {
     gameState.currentRound = data.round;
     gameState.totalRounds = data.totalRounds;
     gameState.gameStartTime = data.startTime;
+    if (data.categories) {
+        gameState.activeCategories = data.categories;
+    }
 
     startRound();
 });
@@ -106,8 +223,6 @@ socket.on('round-started', (data) => {
 socket.on('round-ended', (data) => {
     stopTimer();
     showToast(`${data.finisher} خلص الجولة! ✋`, 'warning');
-    // Important: Wait for user input or auto-submit?
-    // Current design: Auto-submit what they have.
     submitCurrentAnswers();
 });
 
@@ -133,13 +248,13 @@ function showWaitingScreen() {
     document.getElementById('display-room-code').textContent = gameState.roomCode;
     updatePlayersList();
 
-    // Show host controls
     const hostControls = document.getElementById('host-controls');
     const waitingMsg = document.getElementById('waiting-message');
 
     if (gameState.isHost) {
         hostControls.style.display = 'block';
         waitingMsg.style.display = 'none';
+        renderCategoriesSelector();
     } else {
         hostControls.style.display = 'none';
         waitingMsg.style.display = 'block';
@@ -169,10 +284,17 @@ document.getElementById('copy-code-btn').addEventListener('click', () => {
 
 // ==================== Start Game (Host) ====================
 document.getElementById('start-game-btn').addEventListener('click', () => {
+    // Validate at least 3 categories selected
+    if (gameState.activeCategories.length < 3) {
+        showToast('اختر على الأقل 3 فئات!', 'error');
+        return;
+    }
+
     const rounds = document.getElementById('rounds-select').value;
     socket.emit('start-game', {
         roomCode: gameState.roomCode,
-        totalRounds: rounds
+        totalRounds: rounds,
+        categories: gameState.activeCategories
     });
 });
 
@@ -184,8 +306,10 @@ function startRound() {
     document.getElementById('current-letter').textContent = gameState.currentLetter;
     document.getElementById('round-display').textContent = `${gameState.currentRound} / ${gameState.totalRounds}`;
 
-    // Reset Form
-    document.getElementById('game-form').reset();
+    // Render dynamic inputs
+    renderGameInputs(gameState.activeCategories);
+
+    // Enable everything
     document.getElementById('finish-btn').disabled = false;
     document.querySelectorAll('.game-input').forEach(input => {
         input.disabled = false;
@@ -234,7 +358,6 @@ function addInputListeners() {
 }
 
 // ==================== Submit Logic ====================
-// Triggered by "Finished" button
 document.getElementById('game-form').addEventListener('submit', (e) => {
     e.preventDefault();
     document.getElementById('finish-btn').disabled = true;
@@ -245,12 +368,10 @@ document.getElementById('game-form').addEventListener('submit', (e) => {
         answers: answers
     });
 
-    // Disable inputs
     disableInputs();
 });
 
 function submitCurrentAnswers() {
-    // When round is forced to end by someone else
     const answers = collectAnswers();
     disableInputs();
 
@@ -261,14 +382,12 @@ function submitCurrentAnswers() {
 }
 
 function collectAnswers() {
-    return {
-        boy: document.getElementById('boy-input').value.trim(),
-        girl: document.getElementById('girl-input').value.trim(),
-        animal: document.getElementById('animal-input').value.trim(),
-        plant: document.getElementById('plant-input').value.trim(),
-        object: document.getElementById('object-input').value.trim(),
-        country: document.getElementById('country-input').value.trim()
-    };
+    const answers = {};
+    gameState.activeCategories.forEach(key => {
+        const input = document.getElementById(`${key}-input`);
+        answers[key] = input ? input.value.trim() : '';
+    });
+    return answers;
 }
 
 function disableInputs() {
@@ -279,20 +398,14 @@ function disableInputs() {
 // ==================== Scoring Screen ====================
 // Score Updated (Real-time)
 socket.on('score-updated', (data) => {
-    // Update local state if needed (optional since we trust server broadcast)
-
-    // Update UI
     const totalCell = document.getElementById(`total-${data.playerId}`);
     if (totalCell) {
         totalCell.textContent = data.roundScore;
-        // Animation effect
         totalCell.style.color = '#fff';
         setTimeout(() => totalCell.style.color = '', 300);
     }
 
-    // Update the specific cell badge if we are not the host (host already sees toggle update)
     if (!gameState.isHost) {
-        // Find the cell for this category using data attributes
         const scoreBadge = document.querySelector(`.score-badge[data-player-id="${data.playerId}"][data-category="${data.category}"]`);
         if (scoreBadge) {
             scoreBadge.textContent = data.score;
@@ -307,10 +420,13 @@ function showScoringScreen(data) {
     showScreen('scoring-screen');
     document.getElementById('scoring-round-num').textContent = data.currentRound;
 
+    // Build dynamic headers
+    const categories = gameState.activeCategories;
+    renderScoringHeaders(categories);
+
     const tbody = document.getElementById('scoring-body');
     tbody.innerHTML = '';
 
-    const categories = ['boy', 'girl', 'animal', 'plant', 'object', 'country'];
     const isHost = gameState.isHost;
 
     data.players.forEach(player => {
@@ -318,8 +434,7 @@ function showScoringScreen(data) {
 
         // Name
         const nameCell = document.createElement('td');
-        // Add ID to name cell for easy access if needed
-        nameCell.innerHTML = `<strong style="color: #ffd700">${player.name}</strong>`;
+        nameCell.innerHTML = `<strong style="color: var(--accent-gold, #ffd700)">${player.name}</strong>`;
         row.appendChild(nameCell);
 
         let playerScoreSum = 0;
@@ -327,19 +442,16 @@ function showScoringScreen(data) {
         // Answers
         categories.forEach(cat => {
             const cell = document.createElement('td');
-            const answerText = player.answers[cat] || '-';
+            const answerText = (player.answers && player.answers[cat]) || '-';
 
-            // Default logic if not set
             let currentScore = 0;
             if (answerText.trim() !== '-' && answerText.trim().length > 0) {
-                if (answerText.trim().toLowerCase().startsWith(gameState.currentLetter.toLowerCase())) {
+                if (answerText.trim().startsWith(gameState.currentLetter)) {
                     currentScore = 10;
                 }
             }
-            // If server sent specific scores, use them (future proofing), currently we rely on defaults/updates.
 
             if (isHost) {
-                // Editable controls (Toggle Button)
                 const container = document.createElement('div');
                 container.className = 'score-control-container';
 
@@ -354,7 +466,6 @@ function showScoringScreen(data) {
                 toggleBtn.dataset.playerId = player.id;
                 toggleBtn.dataset.category = cat;
 
-                // Click to cycle: 0 -> 5 -> 10 -> 0
                 toggleBtn.addEventListener('click', () => {
                     let currentVal = parseInt(toggleBtn.dataset.value);
                     let nextVal = 0;
@@ -362,12 +473,10 @@ function showScoringScreen(data) {
                     else if (currentVal === 5) nextVal = 10;
                     else nextVal = 0;
 
-                    // Update UI immediately for host
                     toggleBtn.dataset.value = nextVal;
                     toggleBtn.textContent = nextVal;
                     toggleBtn.className = `score-toggle score-${nextVal}`;
 
-                    // Send update to server
                     socket.emit('update-single-score', {
                         roomCode: gameState.roomCode,
                         playerId: player.id,
@@ -375,7 +484,6 @@ function showScoringScreen(data) {
                         score: nextVal
                     });
 
-                    // Recalculate totals locally
                     calculateTotalsLocally();
                 });
 
@@ -385,7 +493,6 @@ function showScoringScreen(data) {
 
                 playerScoreSum += currentScore;
             } else {
-                // Non-host view
                 const container = document.createElement('div');
                 container.className = 'score-control-container';
 
@@ -393,7 +500,6 @@ function showScoringScreen(data) {
                 ansDiv.className = 'answer-text';
                 ansDiv.textContent = answerText;
 
-                // Score Badge (Valid View)
                 const badge = document.createElement('span');
                 badge.className = `score-badge score-${currentScore}`;
                 badge.textContent = currentScore;
@@ -456,17 +562,14 @@ function showFinalResults(players) {
     const podium = document.getElementById('podium');
     const list = document.getElementById('leaderboard-list');
 
-    // Convert to array and sort
     const sorted = players.sort((a, b) => b.totalScore - a.totalScore);
 
-    // Top 3
     let podiumHTML = '';
     if (sorted[0]) podiumHTML += createPodiumItem(sorted[0], 1, '🥇');
     if (sorted[1]) podiumHTML += createPodiumItem(sorted[1], 2, '🥈');
     if (sorted[2]) podiumHTML += createPodiumItem(sorted[2], 3, '🥉');
     podium.innerHTML = podiumHTML;
 
-    // List
     list.innerHTML = sorted.map((p, i) => `
         <li class="leaderboard-item">
             <span class="rank">#${i + 1}</span>
