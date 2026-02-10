@@ -399,25 +399,48 @@ io.on('connection', (socket) => {
 
     // Host updates scores and proceeds
     socket.on('update-scores-and-next', ({ roomCode, playerScores }) => {
+        console.log(`📩 Received 'update-scores-and-next' for room ${roomCode} from ${socket.id}`);
+
         const room = getRoomByCode(roomCode);
-        if (!room || room.host !== socket.id) return;
+        if (!room) {
+            console.error(`❌ Room ${roomCode} not found`);
+            socket.emit('error', { message: 'الغرفة غير موجودة' });
+            return;
+        }
+
+        // Robust Host Check
+        const player = room.players.find(p => p.id === socket.id);
+        if (!player || !player.isHost) {
+            console.error(`⛔ Permission denied: Player ${socket.id} is not host. Real host: ${room.host}`);
+            // Fallback: If room.host matches socket.id but player.isHost is false (inconsistency), trust room.host
+            if (room.host !== socket.id) {
+                socket.emit('error', { message: 'أنت لست المضيف (Host)!' });
+                return;
+            }
+        }
+
+        console.log(`✅ Host verified. Processing scores...`);
 
         // Update scores based on host editing
-        playerScores.forEach(update => {
-            const player = room.players.find(p => p.id === update.id);
-            if (player) {
-                player.roundScore = update.roundScore;
-                player.totalScore = (player.totalScore || 0) + player.roundScore;
-            }
-        });
+        if (playerScores && Array.isArray(playerScores)) {
+            playerScores.forEach(update => {
+                const p = room.players.find(pl => pl.id === update.id);
+                if (p) {
+                    p.roundScore = update.roundScore;
+                    p.totalScore = (p.totalScore || 0) + p.roundScore;
+                }
+            });
+        }
 
         // Check if game over
         if (room.currentRound >= room.totalRounds) {
+            console.log(`🏁 Game Over in room ${roomCode}`);
             io.to(roomCode).emit('game-over', {
                 players: room.players.sort((a, b) => b.totalScore - a.totalScore)
             });
             room.gameActive = false;
         } else {
+            console.log(`➡️ Proceeding to Round ${room.currentRound + 1}`);
             // Next round
             room.currentRound++;
             startRound(roomCode);
