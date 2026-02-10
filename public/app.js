@@ -292,7 +292,7 @@ function showScoringScreen(data) {
 
         // Name
         const nameCell = document.createElement('td');
-        nameCell.innerHTML = `<strong>${player.name}</strong>`;
+        nameCell.innerHTML = `<strong style="color: #ffd700">${player.name}</strong>`;
         row.appendChild(nameCell);
 
         let playerScoreSum = 0;
@@ -304,10 +304,10 @@ function showScoringScreen(data) {
 
             // Check if server validation passed (simple check)
             // Implementation detail: server sends NO details on score per field in 'scoring-phase' currently
-            // We just have 'roundScore'. 
+            // We just have 'roundScore'.
             // Better approach: Let host control entirely.
 
-            // Default logic for dropdown selection
+            // Default logic
             let defaultScore = 0;
             if (answerText.trim() !== '-' && answerText.trim().length > 0) {
                 if (answerText.trim().toLowerCase().startsWith(gameState.currentLetter.toLowerCase())) {
@@ -316,7 +316,7 @@ function showScoringScreen(data) {
             }
 
             if (isHost) {
-                // Editable controls
+                // Editable controls (Toggle Button)
                 const container = document.createElement('div');
                 container.className = 'score-control-container';
 
@@ -324,30 +324,46 @@ function showScoringScreen(data) {
                 ansDiv.className = 'answer-text';
                 ansDiv.textContent = answerText;
 
-                const select = document.createElement('select');
-                select.className = 'score-select';
-                select.dataset.playerId = player.id;
+                const toggleBtn = document.createElement('button');
+                toggleBtn.className = `score-toggle score-${defaultScore}`;
+                toggleBtn.textContent = defaultScore;
+                toggleBtn.dataset.value = defaultScore;
+                toggleBtn.dataset.playerId = player.id;
 
-                [0, 5, 10].forEach(val => {
-                    const opt = document.createElement('option');
-                    opt.value = val;
-                    opt.textContent = val;
-                    if (val === defaultScore) opt.selected = true;
-                    select.appendChild(opt);
-                });
+                // Click to cycle: 0 -> 5 -> 10 -> 0
+                toggleBtn.addEventListener('click', () => {
+                    let currentVal = parseInt(toggleBtn.dataset.value);
+                    let nextVal = 0;
+                    if (currentVal === 0) nextVal = 5;
+                    else if (currentVal === 5) nextVal = 10;
+                    else nextVal = 0;
 
-                // Update total on change
-                select.addEventListener('change', () => {
+                    // Update state
+                    toggleBtn.dataset.value = nextVal;
+                    toggleBtn.textContent = nextVal;
+
+                    // Update visual class
+                    toggleBtn.className = `score-toggle score-${nextVal}`;
+
+                    // Recalculate totals
                     calculateTotalsLocally();
                 });
 
                 container.appendChild(ansDiv);
-                container.appendChild(select);
+                container.appendChild(toggleBtn);
                 cell.appendChild(container);
 
-                playerScoreSum += defaultScore;
             } else {
-                cell.textContent = answerText;
+                // Non-host view
+                const container = document.createElement('div');
+                container.className = 'score-control-container';
+                const ansDiv = document.createElement('div');
+                ansDiv.className = 'answer-text';
+                ansDiv.textContent = answerText;
+                // Just show score badge if available, or just text
+                container.appendChild(ansDiv);
+                cell.appendChild(container);
+
                 playerScoreSum = player.roundScore; // Use server score for non-hosts initially
             }
             row.appendChild(cell);
@@ -376,10 +392,10 @@ function showScoringScreen(data) {
 function calculateTotalsLocally() {
     const rows = document.getElementById('scoring-body').querySelectorAll('tr');
     rows.forEach(row => {
-        const selects = row.querySelectorAll('select');
+        const buttons = row.querySelectorAll('.score-toggle');
         let sum = 0;
-        if (selects.length > 0) {
-            selects.forEach(s => sum += parseInt(s.value));
+        if (buttons.length > 0) {
+            buttons.forEach(btn => sum += parseInt(btn.dataset.value));
             const totalCell = row.querySelector('.round-total');
             if (totalCell) totalCell.textContent = sum;
         }
@@ -392,11 +408,12 @@ document.getElementById('next-round-btn').addEventListener('click', () => {
     const playerScores = [];
     const rows = document.getElementById('scoring-body').querySelectorAll('tr');
 
-    // We need to map rows back to player IDs. 
+    // We need to map rows back to player IDs.
     // The select elements have data-player-id.
     // Let's iterate players from state to be safe.
 
     gameState.scoringData.forEach(p => {
+        // Read from DOM totals which are updated by toggles
         const totalCell = document.getElementById(`total-${p.id}`);
         // If host, we trust the DOM calculation which comes from the selects
         // If not host, this button isn't visible anyway

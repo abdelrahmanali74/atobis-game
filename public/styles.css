@@ -1,31 +1,683 @@
 /* ==================== Variables ==================== */
 :root {
+    --primary-gradient: linear-gradient(135deg, #6C63FF 0%, #4834d4 100%);
+    --secondary-gradient: linear-gradient(135deg, #FF6B6B 0%, #EE5253 100%);
+    --success-gradient: linear-gradient(135deg, #00b894 0%, #00cec9 100%);
+    --warning-gradient: linear-gradient(135deg, #fdcb6e 0%, #e17055 100%);
+    --dark-gradient: linear-gradient(135deg, #2d3436 0%, #000000 100%);
+
+    --bg-color: #0c0c1e;
+    --glass-bg: rgba(255, 255, 255, 0.08);
+    --glass-border: rgba(255, 255, 255, 0.1);
+    --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+
+    --text-primary: #ffffff;
+    --text-secondary: rgba(255, 255, 255, 0.7);
+    --text-muted: rgba(255, 255, 255, 0.4);
+
+    --radius-sm: 8px;
+    --radius-md: 16px;
+    --radius-lg: 24px;
+
+    --font-main: 'Cairo', sans-serif;
+}
+
+/* ==================== Reset & Base ==================== */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+}
+
+body {
+    font-family: var(--font-main);
+    background: radial-gradient(circle at top right, #1a1a2e, #16213e, #0f3460);
+    color: var(--text-primary);
+    min-height: 100vh;
+    overflow-x: hidden;
+    line-height: 1.5;
+    padding: 1rem;
+}
+
+/* Animated Background Shapes */
+body::before,
+body::after {
+    content: '';
+    position: fixed;
+    width: 300px;
+    height: 300px;
+    border-radius: 50%;
+    filter: blur(80px);
+    z-index: -1;
+    opacity: 0.4;
+    animation: float 10s infinite alternate;
+}
+
+body::before {
+    background: #6C63FF;
+    top: -50px;
+    left: -50px;
+}
+
+body::after {
+    background: #FF6B6B;
+    bottom: -50px;
+    right: -50px;
+    animation-delay: 5s;
+}
+
+@keyframes float {
+    0% {
+        transform: translate(0, 0);
+    }
+
+    100% {
+        transform: translate(30px, 30px);
+    }
+}
+
+/* ==================== Layout & Containers ==================== */
+.screen {
+    display: none;
+    min-height: 90vh;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    animation: fadeIn 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
+}
+
+.screen.active {
+    display: flex;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.container {
+    width: 100%;
+    max-width: 600px;
+    /* Optimal for game forms */
+    margin: 0 auto;
+}
+
+.wide-container {
+    max-width: 1000px;
+    /* For scoring table */
+}
+
+/* ==================== Glass Cards ==================== */
+.card-base,
+.start-card,
+.waiting-card,
+.game-card,
+.results-card {
+    background: var(--glass-bg);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-lg);
+    padding: 2rem;
+    box-shadow: var(--glass-shadow);
+    width: 100%;
+}
+
+/* ==================== Typography & Icons ==================== */
+.logo-container {
+    text-align: center;
+    margin-bottom: 2rem;
+}
+
+.bus-icon {
+    font-size: 4rem;
+    display: inline-block;
+    filter: drop-shadow(0 0 15px rgba(255, 255, 255, 0.3));
+    animation: busDrive 2s ease-in-out infinite alternate;
+}
+
+@keyframes busDrive {
+    from {
+        transform: rotate(-5deg);
+    }
+
+    to {
+        transform: rotate(5deg);
+    }
+}
+
+h1 {
+    font-size: 2.5rem;
+    font-weight: 800;
+    margin: 0.5rem 0;
+    background: linear-gradient(to right, #fff, #a5b4fc);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+h2 {
+    font-size: 1.8rem;
+    margin-bottom: 1.5rem;
+    text-align: center;
+}
+
+/* ==================== Inputs & Forms ==================== */
+.input-group {
+    margin-bottom: 1.5rem;
+    position: relative;
+}
+
+.input-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-size: 0.95rem;
+    color: var(--text-secondary);
+}
+
+input[type="text"] {
+    width: 100%;
+    padding: 1rem 1.2rem;
+    background: rgba(0, 0, 0, 0.2);
+    border: 2px solid transparent;
+    border-radius: var(--radius-md);
+    color: #fff;
+    font-size: 1.1rem;
+    font-family: inherit;
+    transition: all 0.3s ease;
+}
+
+input[type="text"]:focus {
+    outline: none;
+    border-color: #6C63FF;
+    background: rgba(0, 0, 0, 0.3);
+    box-shadow: 0 0 15px rgba(108, 99, 255, 0.2);
+}
+
+/* ==================== Buttons ==================== */
+.btn {
+    width: 100%;
+    padding: 1rem;
+    border: none;
+    border-radius: var(--radius-md);
+    font-family: inherit;
+    font-weight: 700;
+    font-size: 1.1rem;
+    cursor: pointer;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 0.8rem;
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+.btn:active {
+    transform: scale(0.97);
+}
+
+.btn-primary {
+    background: var(--primary-gradient);
+    color: white;
+    box-shadow: 0 4px 15px rgba(108, 99, 255, 0.4);
+}
+
+.btn-primary:hover {
+    box-shadow: 0 6px 20px rgba(108, 99, 255, 0.6);
+    transform: translateY(-2px);
+}
+
+.btn-success {
+    background: var(--success-gradient);
+    color: white;
+    font-size: 1.3rem;
+    padding: 1.2rem;
+    box-shadow: 0 4px 15px rgba(0, 184, 148, 0.4);
+}
+
+.btn-secondary {
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.btn-icon-small {
+    background: transparent;
+    border: none;
+    font-size: 1.2rem;
+    cursor: pointer;
+    padding: 5px;
+    border-radius: 5px;
+    transition: background 0.2s;
+}
+
+.btn-icon-small:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+/* ==================== Lobby & Waiting ==================== */
+.room-code-display {
+    background: rgba(0, 0, 0, 0.3);
+    padding: 1rem;
+    border-radius: var(--radius-md);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 1rem;
+    margin: 1rem 0;
+}
+
+.room-code-display span {
+    font-size: 2.2rem;
+    font-weight: 900;
+    letter-spacing: 4px;
+    font-family: monospace;
+    color: #ffd700;
+}
+
+.players-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 1rem;
+    margin: 2rem 0;
+}
+
+.player-item {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 0.8rem;
+    border-radius: var(--radius-md);
+    text-align: center;
+    animation: popIn 0.3s ease-out;
+}
+
+@keyframes popIn {
+    from {
+        opacity: 0;
+        transform: scale(0.8);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+/* ==================== Game Screen ==================== */
+.game-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: rgba(0, 0, 0, 0.3);
+    padding: 1rem 1.5rem;
+    border-radius: var(--radius-lg);
+    margin-bottom: 2rem;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.header-stat {
+    text-align: center;
+}
+
+.header-stat label {
+    display: block;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    opacity: 0.7;
+    margin-bottom: 0.25rem;
+}
+
+.header-stat .value {
+    font-size: 1.5rem;
+    font-weight: 800;
+}
+
+.current-letter .value {
+    color: #FF6B6B;
+    font-size: 2.5rem;
+    line-height: 1;
+}
+
+.timer .value {
+    font-family: monospace;
+    color: #4cd137;
+}
+
+/* Game Form Grid */
+.form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    /* 2 columns on mobile */
+    gap: 1rem;
+    margin-bottom: 2rem;
+}
+
+.input-field {
+    background: rgba(255, 255, 255, 0.03);
+    padding: 0.8rem;
+    border-radius: var(--radius-md);
+    transition: background 0.2s;
+}
+
+.input-field:focus-within {
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.input-field label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.9rem;
+    margin-bottom: 0.5rem;
+    color: #ffd700;
+}
+
+.game-input {
+    font-size: 1rem !important;
+    padding: 0.8rem !important;
+}
+
+/* ==================== Scoring Table (Responsive) ==================== */
+.table-responsive {
+    overflow-x: auto;
+    border-radius: var(--radius-md);
+    background: rgba(0, 0, 0, 0.2);
+    margin-bottom: 2rem;
+}
+
+.scoring-table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 600px;
+    /* Force scroll on small screens */
+}
+
+.scoring-table th,
+.scoring-table td {
+    padding: 1rem;
+    text-align: center;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.scoring-table th {
+    background: rgba(108, 99, 255, 0.2);
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+/* NEW SCORING TOGGLE BUTTONS */
+.score-toggle {
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+    width: 50px;
+    height: 40px;
+    border-radius: 8px;
+    font-weight: 900;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    font-size: 1.1rem;
+    user-select: none;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    border: 2px solid rgba(255, 255, 255, 0.1);
+}
+
+.score-toggle:active {
+    transform: scale(0.9);
+}
+
+.score-0 {
+    background-color: #2d3436;
+    color: #636e72;
+    border-color: #636e72;
+}
+
+.score-5 {
+    background-color: #fdcb6e;
+    color: #d35400;
+    border-color: #e17055;
+    box-shadow: 0 0 10px rgba(253, 203, 110, 0.4);
+}
+
+.score-10 {
+    background-color: #00b894;
+    color: white;
+    border-color: #55efc4;
+    box-shadow: 0 0 10px rgba(0, 184, 148, 0.4);
+}
+
+/* Answer text above toggle */
+.score-control-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+}
+
+.answer-text {
+    font-size: 0.85rem;
+    opacity: 0.9;
+    max-width: 120px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* ==================== Results & Leaderboard ==================== */
+.podium {
+    display: flex;
+    justify-content: center;
+    align-items: flex-end;
+    height: 200px;
+    margin: 3rem 0;
+    gap: 8px;
+}
+
+.podium-item {
+    flex: 1;
+    max-width: 100px;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    align-items: center;
+    padding-bottom: 1rem;
+    border-radius: 12px 12px 0 0;
+    position: relative;
+    transition: height 1s ease;
+}
+
+.podium-item.rank-1 {
+    height: 100%;
+    background: linear-gradient(to top, #FFD700, rgba(255, 215, 0, 0.3));
+    order: 2;
+    z-index: 2;
+    box-shadow: 0 0 20px rgba(255, 215, 0, 0.3);
+}
+
+.podium-item.rank-2 {
+    height: 75%;
+    background: linear-gradient(to top, #C0C0C0, rgba(192, 192, 192, 0.3));
+    order: 1;
+    z-index: 1;
+}
+
+.podium-item.rank-3 {
+    height: 60%;
+    background: linear-gradient(to top, #CD7F32, rgba(205, 127, 50, 0.3));
+    order: 3;
+    z-index: 0;
+}
+
+.podium-item .medal {
+    font-size: 2.5rem;
+    margin-bottom: auto;
+    filter: drop-shadow(0 4px 4px rgba(0, 0, 0, 0.3));
+}
+
+.podium-item .p-name {
+    font-weight: bold;
+    margin-bottom: 5px;
+    font-size: 0.9rem;
+    text-align: center;
+}
+
+.podium-item .p-score {
+    font-weight: 900;
+    background: rgba(0, 0, 0, 0.3);
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 0.8rem;
+}
+
+/* List */
+.leaderboard-list {
+    list-style: none;
+}
+
+.leaderboard-item {
+    background: rgba(255, 255, 255, 0.05);
+    margin-bottom: 0.8rem;
+    padding: 1rem;
+    border-radius: var(--radius-md);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-left: 4px solid transparent;
+}
+
+.leaderboard-item:nth-child(1) {
+    border-left-color: #FFD700;
+}
+
+.leaderboard-item:nth-child(2) {
+    border-left-color: #C0C0C0;
+}
+
+.leaderboard-item:nth-child(3) {
+    border-left-color: #CD7F32;
+}
+
+/* ==================== Footer ==================== */
+.game-footer {
+    text-align: center;
+    font-size: 0.8rem;
+    opacity: 0.5;
+    margin-top: 3rem;
+    padding-bottom: 1rem;
+}
+
+/* ==================== Mobile Optimization ==================== */
+@media (max-width: 768px) {
+    .container {
+        padding: 0 0.5rem;
+    }
+
+    .card-base,
+    .start-card,
+    .game-card {
+        padding: 1.5rem 1rem;
+    }
+
+    .bus-icon {
+        font-size: 3rem;
+    }
+
+    h1 {
+        font-size: 2rem;
+    }
+
+    .form-grid {
+        grid-template-columns: 1fr;
+        /* Stack inputs on mobile for better touch targets */
+        gap: 0.8rem;
+    }
+
+    .input-field {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    .input-field label {
+        margin-bottom: 0;
+        width: 80px;
+        /* Fixed width for labels */
+        font-size: 0.9rem;
+    }
+
+    .game-input {
+        flex: 1;
+    }
+
+    .game-header {
+        padding: 0.8rem;
+        flex-direction: row;
+        /* Keep horizontal on mobile */
+        gap: 0.5rem;
+    }
+
+    .header-stat label {
+        display: none;
+    }
+
+    /* Save space */
+    .header-stat::before {
+        content: attr(data-icon);
+        margin-left: 5px;
+    }
+
+    /* Scoring table tweaks for mobile */
+    .score-control-container {
+        min-width: 80px;
+    }
+
+    .answer-text {
+        font-size: 0.75rem;
+        max-width: 80px;
+    }
+
+    .score-toggle {
+        width: 40px;
+        height: 35px;
+        font-size: 0.9rem;
+    }
+}
+
+:root {
     --primary: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     --primary-dark: #5568d3;
     --secondary: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
     --success: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
     --success-solid: #00d4ff;
     --warning: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
-    
+
     --bg-dark: #0f0c29;
     --bg-gradient: linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%);
     --card-bg: rgba(255, 255, 255, 0.05);
     --card-border: rgba(255, 255, 255, 0.1);
-    
+
     --text-primary: #ffffff;
     --text-secondary: rgba(255, 255, 255, 0.7);
     --text-muted: rgba(255, 255, 255, 0.5);
-    
+
     --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.1);
     --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.2);
     --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.3);
     --shadow-glow: 0 0 20px rgba(102, 126, 234, 0.4);
-    
+
     --radius-sm: 8px;
     --radius-md: 12px;
     --radius-lg: 16px;
     --radius-xl: 24px;
-    
+
     --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
@@ -65,6 +717,7 @@ body {
         opacity: 0;
         transform: translateY(20px);
     }
+
     to {
         opacity: 1;
         transform: translateY(0);
@@ -89,9 +742,11 @@ body {
         opacity: 0;
         transform: scale(0.3);
     }
+
     50% {
         transform: scale(1.05);
     }
+
     100% {
         opacity: 1;
         transform: scale(1);
@@ -105,9 +760,12 @@ body {
 }
 
 @keyframes busMove {
-    0%, 100% {
+
+    0%,
+    100% {
         transform: translateX(0);
     }
+
     50% {
         transform: translateX(10px);
     }
@@ -568,9 +1226,12 @@ body {
 }
 
 @keyframes pulse {
-    0%, 100% {
+
+    0%,
+    100% {
         transform: scale(1);
     }
+
     50% {
         transform: scale(1.05);
     }
@@ -670,39 +1331,39 @@ body {
     .game-title {
         font-size: 2.5rem;
     }
-    
+
     .bus-icon {
         font-size: 3.5rem;
     }
-    
+
     .start-card,
     .waiting-card,
     .game-card,
     .results-card {
         padding: 1.5rem;
     }
-    
+
     .form-grid {
         grid-template-columns: 1fr;
     }
-    
+
     .header-info {
         flex-direction: column;
         gap: 1rem;
     }
-    
+
     .letters-grid {
         grid-template-columns: repeat(auto-fill, minmax(40px, 1fr));
     }
-    
+
     .results-actions {
         flex-direction: column;
     }
-    
+
     .results-actions .btn {
         width: 100%;
     }
-    
+
     .toast {
         right: 1rem;
         left: 1rem;
@@ -715,6 +1376,7 @@ body {
         opacity: 0;
         transform: translateY(30px);
     }
+
     to {
         opacity: 1;
         transform: translateY(0);
