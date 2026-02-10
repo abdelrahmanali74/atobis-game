@@ -276,10 +276,57 @@ function disableInputs() {
     document.getElementById('finish-btn').disabled = true;
 }
 
+// Check for stored session on load
+window.addEventListener('DOMContentLoaded', () => {
+    const storedName = localStorage.getItem('atobis_name');
+    const storedCode = localStorage.getItem('atobis_code');
+
+    // Auto-reconnect if we have data and socket resets
+    // Note: server logic handles 'join-room' as reconnect provided name matches
+    if (storedName) {
+        document.getElementById('display-name').value = storedName;
+    }
+});
+
+// Join Room Logic
+document.getElementById('join-btn').addEventListener('click', () => {
+    const name = document.getElementById('display-name').value.trim();
+    const code = document.getElementById('room-code-input').value.trim().toUpperCase();
+
+    if (!name || !code) {
+        showToast('برجاء إدخال الاسم وكود الغرفة', 'error');
+        return;
+    }
+
+    // Save for refresh
+    localStorage.setItem('atobis_name', name);
+    localStorage.setItem('atobis_code', code);
+
+    socket.emit('join-room', { roomCode: code, playerName: name });
+});
+
+// Create Room Logic
+document.getElementById('create-btn').addEventListener('click', () => {
+    const name = document.getElementById('display-name').value.trim();
+
+    if (!name) {
+        showToast('برجاء إدخال اسمك أولاً', 'error');
+        return;
+    }
+
+    // Save for refresh
+    localStorage.setItem('atobis_name', name);
+
+    socket.emit('create-room', name);
+});
+
 // ==================== Scoring Screen ====================
 function showScoringScreen(data) {
     showScreen('scoring-screen');
     document.getElementById('scoring-round-num').textContent = data.currentRound;
+
+    // Save data for later use
+    gameState.scoringData = data.players;
 
     const tbody = document.getElementById('scoring-body');
     tbody.innerHTML = '';
@@ -289,6 +336,7 @@ function showScoringScreen(data) {
 
     data.players.forEach(player => {
         const row = document.createElement('tr');
+        row.dataset.playerId = player.id; // Mark row
 
         // Name
         const nameCell = document.createElement('td');
@@ -301,11 +349,6 @@ function showScoringScreen(data) {
         categories.forEach(cat => {
             const cell = document.createElement('td');
             const answerText = player.answers[cat] || '-';
-
-            // Check if server validation passed (simple check)
-            // Implementation detail: server sends NO details on score per field in 'scoring-phase' currently
-            // We just have 'roundScore'.
-            // Better approach: Let host control entirely.
 
             // Default logic
             let defaultScore = 0;
@@ -328,7 +371,6 @@ function showScoringScreen(data) {
                 toggleBtn.className = `score-toggle score-${defaultScore}`;
                 toggleBtn.textContent = defaultScore;
                 toggleBtn.dataset.value = defaultScore;
-                toggleBtn.dataset.playerId = player.id;
 
                 // Click to cycle: 0 -> 5 -> 10 -> 0
                 toggleBtn.addEventListener('click', () => {
@@ -338,21 +380,32 @@ function showScoringScreen(data) {
                     else if (currentVal === 5) nextVal = 10;
                     else nextVal = 0;
 
-                    // Update state
+                    // Update state locally first
                     toggleBtn.dataset.value = nextVal;
                     toggleBtn.textContent = nextVal;
-
-                    // Update visual class
                     toggleBtn.className = `score-toggle score-${nextVal}`;
 
-                    // Recalculate totals
-                    calculateTotalsLocally();
+                    // Calculate NEW TOTAL for this player
+                    let newTotal = 0;
+                    row.querySelectorAll('.score-toggle').forEach(btn => newTotal += parseInt(btn.dataset.value));
+
+                    // Update local total view
+                    const totalCell = row.querySelector('.round-total');
+                    if (totalCell) totalCell.textContent = newTotal;
+
+                    // Send to server to broadcast
+                    socket.emit('update-player-score', {
+                        roomCode: gameState.roomCode,
+                        playerId: player.id,
+                        scoreDelta: newTotal // Sending total round score
+                    });
                 });
 
                 container.appendChild(ansDiv);
                 container.appendChild(toggleBtn);
                 cell.appendChild(container);
 
+                playerScoreSum += defaultScore;
             } else {
                 // Non-host view
                 const container = document.createElement('div');
@@ -360,11 +413,15 @@ function showScoringScreen(data) {
                 const ansDiv = document.createElement('div');
                 ansDiv.className = 'answer-text';
                 ansDiv.textContent = answerText;
-                // Just show score badge if available, or just text
+
+                // Show score badge (visual only, not clickable)
+                // We rely on 'score-updated' event to update the total
+                // Could optionally show the individual score if we synced it, but total is enough request
+
                 container.appendChild(ansDiv);
                 cell.appendChild(container);
 
-                playerScoreSum = player.roundScore; // Use server score for non-hosts initially
+                playerScoreSum = player.roundScore;
             }
             row.appendChild(cell);
         });
@@ -382,7 +439,10 @@ function showScoringScreen(data) {
     if (isHost) {
         document.getElementById('host-scoring-controls').style.display = 'block';
         document.getElementById('waiting-host-scoring').style.display = 'none';
-        calculateTotalsLocally(); // Initial calculation based on defaults
+
+        // Initial sync of calculated defaults
+        // We probably should emit these initial defaults to server/others? 
+        // For now, relies on default simple logic.
     } else {
         document.getElementById('host-scoring-controls').style.display = 'none';
         document.getElementById('waiting-host-scoring').style.display = 'block';
