@@ -463,33 +463,40 @@ function calculateTotalsLocally() {
 }
 
 // Next Round (Host)
-document.getElementById('next-round-btn').addEventListener('click', () => {
-    // Collect scores from DOM
-    const playerScores = [];
-    const rows = document.getElementById('scoring-body').querySelectorAll('tr');
+const nextRoundBtn = document.getElementById('next-round-btn');
+if (nextRoundBtn) {
+    nextRoundBtn.addEventListener('click', () => {
+        // Collect scores from DOM
+        const playerScores = [];
+        const rows = document.getElementById('scoring-body').querySelectorAll('tr');
 
-    // We need to map rows back to player IDs.
-    // The select elements have data-player-id.
-    // Let's iterate players from state to be safe.
+        gameState.scoringData.forEach(p => {
+            // Read from DOM totals which are updated by toggles
+            const totalCell = document.getElementById(`total-${p.id}`);
+            if (totalCell) {
+                playerScores.push({
+                    id: p.id,
+                    roundScore: parseInt(totalCell.textContent)
+                });
+            }
+        });
 
-    gameState.scoringData.forEach(p => {
-        // Read from DOM totals which are updated by toggles
-        const totalCell = document.getElementById(`total-${p.id}`);
-        // If host, we trust the DOM calculation which comes from the selects
-        // If not host, this button isn't visible anyway
-        if (totalCell) {
-            playerScores.push({
-                id: p.id,
-                roundScore: parseInt(totalCell.textContent)
-            });
-        }
+        // UI Feedback
+        nextRoundBtn.disabled = true;
+        nextRoundBtn.innerHTML = '<span class="emoji">⏳</span> جاري الانتقال...';
+
+        socket.emit('update-scores-and-next', {
+            roomCode: gameState.roomCode,
+            playerScores
+        });
+
+        // Timeout backup just in case
+        setTimeout(() => {
+            nextRoundBtn.disabled = false;
+            nextRoundBtn.textContent = 'الجولة التالية ➡️';
+        }, 5000);
     });
-
-    socket.emit('update-scores-and-next', {
-        roomCode: gameState.roomCode,
-        playerScores
-    });
-});
+}
 
 // ==================== Final Results ====================
 function showFinalResults(players) {

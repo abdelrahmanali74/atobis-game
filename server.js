@@ -72,6 +72,13 @@ function addPlayerToRoom(roomCode, socketId, playerName) {
             // Reconnect logic
             existingPlayer.id = socketId;
             existingPlayer.disconnected = false;
+
+            // Updated: If this player was host, update room host socket ID
+            if (existingPlayer.isHost) {
+                room.host = socketId;
+                console.log(`👑 Host reconnected, updated room host ID to ${socketId}`);
+            }
+
             console.log(`♻️ Player ${playerName} reconnected to ${roomCode}`);
             return { room, reconnected: true, player: existingPlayer };
         } else {
