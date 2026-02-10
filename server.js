@@ -48,8 +48,7 @@ function createRoom(hostSocketId, hostName) {
             finished: false,
             answers: null,
             score: 0,
-            finishTime: null,
-            disconnected: false
+            finishTime: null
         }],
         currentLetter: null,
         usedLetters: [],
@@ -64,13 +63,6 @@ function addPlayerToRoom(roomCode, socketId, playerName) {
     const room = getRoomByCode(roomCode);
     if (!room) return null;
 
-    // Simple name check - no reconnection
-    // Check if name is taken by a connected player, or just allow multiple? 
-    // To prevent confusion, if name exists, reject.
-    if (room.players.some(p => p.name === playerName)) {
-        return { error: 'الاسم مستخدم بالفعل في هذه الغرفة!' };
-    }
-
     const player = {
         id: socketId,
         name: playerName,
@@ -82,16 +74,14 @@ function addPlayerToRoom(roomCode, socketId, playerName) {
     };
 
     room.players.push(player);
-    return { room, player };
+    return room;
 }
 
 function removePlayerFromRoom(socketId) {
     for (const [code, room] of rooms.entries()) {
-        const index = room.players.findIndex(p => p.id === socketId);
-
-        if (index !== -1) {
-            const player = room.players[index];
-            room.players.splice(index, 1); // Remove immediately
+        const playerIndex = room.players.findIndex(p => p.id === socketId);
+        if (playerIndex !== -1) {
+            room.players.splice(playerIndex, 1);
 
             // If room is empty, delete it
             if (room.players.length === 0) {
@@ -100,19 +90,53 @@ function removePlayerFromRoom(socketId) {
             }
 
             // If host left, assign new host
-            if (player.isHost && room.players.length > 0) {
+            if (room.host === socketId && room.players.length > 0) {
                 room.host = room.players[0].id;
                 room.players[0].isHost = true;
-                console.log(`👑 New host assigned: ${room.players[0].name}`);
             }
 
-            return { deleted: false, code, room, player };
+            return { deleted: false, code, room };
         }
     }
     return null;
 }
 
-// ... (calculateScore function remains same)
+function calculateScore(player, room) {
+    let score = 0;
+    const answers = player.answers;
+
+    if (!answers) return 0;
+
+    Object.keys(answers).forEach(category => {
+        const answer = answers[category];
+        if (!answer) return;
+
+        // Check if answer starts with current letter
+        if (!answer.startsWith(room.currentLetter)) return;
+
+        // Count duplicate answers
+        const sameAnswers = room.players.filter(p =>
+            p.answers && p.answers[category] === answer
+        ).length;
+
+        if (sameAnswers === 1) {
+            score += 10; // Unique answer
+        } else {
+            score += 5; // Duplicate answer
+        }
+    });
+
+    // Bonus for finishing first
+    const sortedByTime = [...room.players]
+        .filter(p => p.finishTime !== null)
+        .sort((a, b) => a.finishTime - b.finishTime);
+
+    if (sortedByTime.length > 0 && sortedByTime[0].id === player.id) {
+        score += 10;
+    }
+
+    return score;
+}
 
 // Socket.IO connection handling
 io.on('connection', (socket) => {
@@ -133,19 +157,13 @@ io.on('connection', (socket) => {
     });
 
     socket.on('join-room', ({ roomCode, playerName }) => {
-        const result = addPlayerToRoom(roomCode, socket.id, playerName);
+        const room = addPlayerToRoom(roomCode, socket.id, playerName);
 
-        if (!result) {
+        if (!room) {
             socket.emit('error', { message: 'الغرفة غير موجودة!' });
             return;
         }
 
-        if (result.error) {
-            socket.emit('error', { message: result.error });
-            return;
-        }
-
-        const room = result.room;
         socket.join(roomCode);
 
         // Notify all players in room
@@ -159,9 +177,7 @@ io.on('connection', (socket) => {
             players: room.players,
             usedLetters: room.usedLetters,
             currentLetter: room.currentLetter,
-            gameActive: room.gameActive,
-            currentRound: room.currentRound,
-            totalRounds: room.totalRounds
+            gameActive: room.gameActive
         });
 
         console.log(`👋 ${playerName} joined room: ${roomCode}`);
@@ -328,70 +344,27 @@ io.on('connection', (socket) => {
         });
     }
 
-    // Host updates single score (Real-time)
-    socket.on('update-player-score', ({ roomCode, playerId, scoreDelta }) => {
+    // Host updates scores and proceeds
+    socket.on('update-scores-and-next', ({ roomCode, playerScores }) => {
         const room = getRoomByCode(roomCode);
         if (!room || room.host !== socket.id) return;
 
-        const player = room.players.find(p => p.id === playerId);
-        if (player) {
-            // Update the specific score logic if we had per-category tracking on server
-            // For now, we trust the host's delta or absolute value.
-            // Simplified: The client sends the NEW total round score for that player.
-            player.roundScore = scoreDelta;
-
-            // Broadcast to everyone so they see the change live
-            io.to(roomCode).emit('score-updated', {
-                playerId: playerId,
-                roundScore: player.roundScore
-            });
-        }
-    });
-
-    // Host updates scores and proceeds
-    socket.on('update-scores-and-next', ({ roomCode, playerScores }) => {
-        console.log(`📩 Received 'update-scores-and-next' for room ${roomCode} from ${socket.id}`);
-
-        const room = getRoomByCode(roomCode);
-        if (!room) {
-            console.error(`❌ Room ${roomCode} not found`);
-            socket.emit('error', { message: 'الغرفة غير موجودة' });
-            return;
-        }
-
-        // Robust Host Check
-        const player = room.players.find(p => p.id === socket.id);
-        if (!player || !player.isHost) {
-            console.error(`⛔ Permission denied: Player ${socket.id} is not host. Real host: ${room.host}`);
-            // Fallback: If room.host matches socket.id but player.isHost is false (inconsistency), trust room.host
-            if (room.host !== socket.id) {
-                socket.emit('error', { message: 'أنت لست المضيف (Host)!' });
-                return;
-            }
-        }
-
-        console.log(`✅ Host verified. Processing scores...`);
-
         // Update scores based on host editing
-        if (playerScores && Array.isArray(playerScores)) {
-            playerScores.forEach(update => {
-                const p = room.players.find(pl => pl.id === update.id);
-                if (p) {
-                    p.roundScore = update.roundScore;
-                    p.totalScore = (p.totalScore || 0) + p.roundScore;
-                }
-            });
-        }
+        playerScores.forEach(update => {
+            const player = room.players.find(p => p.id === update.id);
+            if (player) {
+                player.roundScore = update.roundScore;
+                player.totalScore = (player.totalScore || 0) + player.roundScore;
+            }
+        });
 
         // Check if game over
         if (room.currentRound >= room.totalRounds) {
-            console.log(`🏁 Game Over in room ${roomCode}`);
             io.to(roomCode).emit('game-over', {
                 players: room.players.sort((a, b) => b.totalScore - a.totalScore)
             });
             room.gameActive = false;
         } else {
-            console.log(`➡️ Proceeding to Round ${room.currentRound + 1}`);
             // Next round
             room.currentRound++;
             startRound(roomCode);

@@ -276,39 +276,10 @@ function disableInputs() {
     document.getElementById('finish-btn').disabled = true;
 }
 
-// JOIN ROOM LOGIC REPLACED BELOW
-// Join Room Logic
-document.getElementById('join-btn').addEventListener('click', () => {
-    const name = document.getElementById('display-name').value.trim();
-    const code = document.getElementById('room-code-input').value.trim().toUpperCase();
-
-    if (!name || !code) {
-        showToast('برجاء إدخال الاسم وكود الغرفة', 'error');
-        return;
-    }
-
-    socket.emit('join-room', { roomCode: code, playerName: name });
-});
-
-// Create Room Logic
-document.getElementById('create-btn').addEventListener('click', () => {
-    const name = document.getElementById('display-name').value.trim();
-
-    if (!name) {
-        showToast('برجاء إدخال اسمك أولاً', 'error');
-        return;
-    }
-
-    socket.emit('create-room', name);
-});
-
 // ==================== Scoring Screen ====================
 function showScoringScreen(data) {
     showScreen('scoring-screen');
     document.getElementById('scoring-round-num').textContent = data.currentRound;
-
-    // Save data for later use
-    gameState.scoringData = data.players;
 
     const tbody = document.getElementById('scoring-body');
     tbody.innerHTML = '';
@@ -318,7 +289,6 @@ function showScoringScreen(data) {
 
     data.players.forEach(player => {
         const row = document.createElement('tr');
-        row.dataset.playerId = player.id; // Mark row
 
         // Name
         const nameCell = document.createElement('td');
@@ -331,6 +301,11 @@ function showScoringScreen(data) {
         categories.forEach(cat => {
             const cell = document.createElement('td');
             const answerText = player.answers[cat] || '-';
+
+            // Check if server validation passed (simple check)
+            // Implementation detail: server sends NO details on score per field in 'scoring-phase' currently
+            // We just have 'roundScore'.
+            // Better approach: Let host control entirely.
 
             // Default logic
             let defaultScore = 0;
@@ -353,6 +328,7 @@ function showScoringScreen(data) {
                 toggleBtn.className = `score-toggle score-${defaultScore}`;
                 toggleBtn.textContent = defaultScore;
                 toggleBtn.dataset.value = defaultScore;
+                toggleBtn.dataset.playerId = player.id;
 
                 // Click to cycle: 0 -> 5 -> 10 -> 0
                 toggleBtn.addEventListener('click', () => {
@@ -362,32 +338,21 @@ function showScoringScreen(data) {
                     else if (currentVal === 5) nextVal = 10;
                     else nextVal = 0;
 
-                    // Update state locally first
+                    // Update state
                     toggleBtn.dataset.value = nextVal;
                     toggleBtn.textContent = nextVal;
+
+                    // Update visual class
                     toggleBtn.className = `score-toggle score-${nextVal}`;
 
-                    // Calculate NEW TOTAL for this player
-                    let newTotal = 0;
-                    row.querySelectorAll('.score-toggle').forEach(btn => newTotal += parseInt(btn.dataset.value));
-
-                    // Update local total view
-                    const totalCell = row.querySelector('.round-total');
-                    if (totalCell) totalCell.textContent = newTotal;
-
-                    // Send to server to broadcast
-                    socket.emit('update-player-score', {
-                        roomCode: gameState.roomCode,
-                        playerId: player.id,
-                        scoreDelta: newTotal // Sending total round score
-                    });
+                    // Recalculate totals
+                    calculateTotalsLocally();
                 });
 
                 container.appendChild(ansDiv);
                 container.appendChild(toggleBtn);
                 cell.appendChild(container);
 
-                playerScoreSum += defaultScore;
             } else {
                 // Non-host view
                 const container = document.createElement('div');
@@ -395,15 +360,11 @@ function showScoringScreen(data) {
                 const ansDiv = document.createElement('div');
                 ansDiv.className = 'answer-text';
                 ansDiv.textContent = answerText;
-
-                // Show score badge (visual only, not clickable)
-                // We rely on 'score-updated' event to update the total
-                // Could optionally show the individual score if we synced it, but total is enough request
-
+                // Just show score badge if available, or just text
                 container.appendChild(ansDiv);
                 cell.appendChild(container);
 
-                playerScoreSum = player.roundScore;
+                playerScoreSum = player.roundScore; // Use server score for non-hosts initially
             }
             row.appendChild(cell);
         });
@@ -421,10 +382,7 @@ function showScoringScreen(data) {
     if (isHost) {
         document.getElementById('host-scoring-controls').style.display = 'block';
         document.getElementById('waiting-host-scoring').style.display = 'none';
-
-        // Initial sync of calculated defaults
-        // We probably should emit these initial defaults to server/others? 
-        // For now, relies on default simple logic.
+        calculateTotalsLocally(); // Initial calculation based on defaults
     } else {
         document.getElementById('host-scoring-controls').style.display = 'none';
         document.getElementById('waiting-host-scoring').style.display = 'block';
@@ -445,40 +403,33 @@ function calculateTotalsLocally() {
 }
 
 // Next Round (Host)
-const nextRoundBtn = document.getElementById('next-round-btn');
-if (nextRoundBtn) {
-    nextRoundBtn.addEventListener('click', () => {
-        // Collect scores from DOM
-        const playerScores = [];
-        const rows = document.getElementById('scoring-body').querySelectorAll('tr');
+document.getElementById('next-round-btn').addEventListener('click', () => {
+    // Collect scores from DOM
+    const playerScores = [];
+    const rows = document.getElementById('scoring-body').querySelectorAll('tr');
 
-        gameState.scoringData.forEach(p => {
-            // Read from DOM totals which are updated by toggles
-            const totalCell = document.getElementById(`total-${p.id}`);
-            if (totalCell) {
-                playerScores.push({
-                    id: p.id,
-                    roundScore: parseInt(totalCell.textContent)
-                });
-            }
-        });
+    // We need to map rows back to player IDs.
+    // The select elements have data-player-id.
+    // Let's iterate players from state to be safe.
 
-        // UI Feedback
-        nextRoundBtn.disabled = true;
-        nextRoundBtn.innerHTML = '<span class="emoji">⏳</span> جاري الانتقال...';
-
-        socket.emit('update-scores-and-next', {
-            roomCode: gameState.roomCode,
-            playerScores
-        });
-
-        // Timeout backup just in case
-        setTimeout(() => {
-            nextRoundBtn.disabled = false;
-            nextRoundBtn.textContent = 'الجولة التالية ➡️';
-        }, 5000);
+    gameState.scoringData.forEach(p => {
+        // Read from DOM totals which are updated by toggles
+        const totalCell = document.getElementById(`total-${p.id}`);
+        // If host, we trust the DOM calculation which comes from the selects
+        // If not host, this button isn't visible anyway
+        if (totalCell) {
+            playerScores.push({
+                id: p.id,
+                roundScore: parseInt(totalCell.textContent)
+            });
+        }
     });
-}
+
+    socket.emit('update-scores-and-next', {
+        roomCode: gameState.roomCode,
+        playerScores
+    });
+});
 
 // ==================== Final Results ====================
 function showFinalResults(players) {
