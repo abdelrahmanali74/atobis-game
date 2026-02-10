@@ -64,27 +64,11 @@ function addPlayerToRoom(roomCode, socketId, playerName) {
     const room = getRoomByCode(roomCode);
     if (!room) return null;
 
-    // Check if reconnection
-    const existingPlayer = room.players.find(p => p.name === playerName);
-
-    if (existingPlayer) {
-        if (existingPlayer.disconnected) {
-            // Reconnect logic
-            existingPlayer.id = socketId;
-            existingPlayer.disconnected = false;
-
-            // Updated: If this player was host, update room host socket ID
-            if (existingPlayer.isHost) {
-                room.host = socketId;
-                console.log(`👑 Host reconnected, updated room host ID to ${socketId}`);
-            }
-
-            console.log(`♻️ Player ${playerName} reconnected to ${roomCode}`);
-            return { room, reconnected: true, player: existingPlayer };
-        } else {
-            // Name taken
-            return { error: 'الاسم مستخدم بالفعل في هذه الغرفة!' };
-        }
+    // Simple name check - no reconnection
+    // Check if name is taken by a connected player, or just allow multiple? 
+    // To prevent confusion, if name exists, reject.
+    if (room.players.some(p => p.name === playerName)) {
+        return { error: 'الاسم مستخدم بالفعل في هذه الغرفة!' };
     }
 
     const player = {
@@ -94,37 +78,35 @@ function addPlayerToRoom(roomCode, socketId, playerName) {
         finished: false,
         answers: null,
         score: 0,
-        finishTime: null,
-        disconnected: false
+        finishTime: null
     };
 
     room.players.push(player);
-    return { room, reconnected: false, player };
+    return { room, player };
 }
 
 function removePlayerFromRoom(socketId) {
     for (const [code, room] of rooms.entries()) {
-        const player = room.players.find(p => p.id === socketId);
+        const index = room.players.findIndex(p => p.id === socketId);
 
-        if (player) {
-            // Mark as disconnected but DON'T remove immediately
-            player.disconnected = true;
-            player.disconnectTime = Date.now();
+        if (index !== -1) {
+            const player = room.players[index];
+            room.players.splice(index, 1); // Remove immediately
 
-            // Check if room is empty (all disconnected)
-            const allDisconnected = room.players.every(p => p.disconnected);
-
-            if (allDisconnected) {
-                // Set timeout to delete room if no one returns in 5 mins
-                setTimeout(() => {
-                    if (rooms.has(code) && rooms.get(code).players.every(p => p.disconnected)) {
-                        rooms.delete(code);
-                        console.log(`🗑️ Room ${code} deleted (abandoned)`);
-                    }
-                }, 5 * 60 * 1000);
+            // If room is empty, delete it
+            if (room.players.length === 0) {
+                rooms.delete(code);
+                return { deleted: true, code };
             }
 
-            return { code, room, player };
+            // If host left, assign new host
+            if (player.isHost && room.players.length > 0) {
+                room.host = room.players[0].id;
+                room.players[0].isHost = true;
+                console.log(`👑 New host assigned: ${room.players[0].name}`);
+            }
+
+            return { deleted: false, code, room, player };
         }
     }
     return null;
@@ -166,54 +148,23 @@ io.on('connection', (socket) => {
         const room = result.room;
         socket.join(roomCode);
 
-        // If reconnected
-        if (result.reconnected) {
-            socket.emit('room-joined', {
-                roomCode: room.code,
-                players: room.players,
-                usedLetters: room.usedLetters,
-                currentLetter: room.currentLetter,
-                gameActive: room.gameActive,
-                // Resend current state if needed
-                currentRound: room.currentRound,
-                totalRounds: room.totalRounds,
-                roundState: room.roundState
-            });
+        // Notify all players in room
+        io.to(roomCode).emit('player-joined', {
+            players: room.players,
+            newPlayer: playerName
+        });
 
-            // Notify others
-            io.to(roomCode).emit('player-reconnected', {
-                playerId: socket.id,
-                name: playerName
-            });
+        socket.emit('room-joined', {
+            roomCode: room.code,
+            players: room.players,
+            usedLetters: room.usedLetters,
+            currentLetter: room.currentLetter,
+            gameActive: room.gameActive,
+            currentRound: room.currentRound,
+            totalRounds: room.totalRounds
+        });
 
-            // If in scoring phase, send scoring data
-            if (room.roundState === 'scoring') {
-                // Calculate duplicate checks again if needed or send current
-                // Simplified:
-                // We need to resend the player their own scoring view potentially
-                // But app.js logic handles 'scoring-phase' event.
-            }
-
-        } else {
-            // New Join
-            // Notify all players in room
-            io.to(roomCode).emit('player-joined', {
-                players: room.players,
-                newPlayer: playerName
-            });
-
-            socket.emit('room-joined', {
-                roomCode: room.code,
-                players: room.players,
-                usedLetters: room.usedLetters,
-                currentLetter: room.currentLetter,
-                gameActive: room.gameActive,
-                currentRound: room.currentRound,
-                totalRounds: room.totalRounds
-            });
-
-            console.log(`👋 ${playerName} joined room: ${roomCode}`);
-        }
+        console.log(`👋 ${playerName} joined room: ${roomCode}`);
     });
 
     // Letter selection

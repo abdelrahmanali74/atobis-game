@@ -276,18 +276,7 @@ function disableInputs() {
     document.getElementById('finish-btn').disabled = true;
 }
 
-// Check for stored session on load
-window.addEventListener('DOMContentLoaded', () => {
-    const storedName = localStorage.getItem('atobis_name');
-    const storedCode = localStorage.getItem('atobis_code');
-
-    // Auto-reconnect if we have data and socket resets
-    // Note: server logic handles 'join-room' as reconnect provided name matches
-    if (storedName) {
-        document.getElementById('display-name').value = storedName;
-    }
-});
-
+// JOIN ROOM LOGIC REPLACED BELOW
 // Join Room Logic
 document.getElementById('join-btn').addEventListener('click', () => {
     const name = document.getElementById('display-name').value.trim();
@@ -297,10 +286,6 @@ document.getElementById('join-btn').addEventListener('click', () => {
         showToast('برجاء إدخال الاسم وكود الغرفة', 'error');
         return;
     }
-
-    // Save for refresh
-    localStorage.setItem('atobis_name', name);
-    localStorage.setItem('atobis_code', code);
 
     socket.emit('join-room', { roomCode: code, playerName: name });
 });
@@ -313,9 +298,6 @@ document.getElementById('create-btn').addEventListener('click', () => {
         showToast('برجاء إدخال اسمك أولاً', 'error');
         return;
     }
-
-    // Save for refresh
-    localStorage.setItem('atobis_name', name);
 
     socket.emit('create-room', name);
 });
