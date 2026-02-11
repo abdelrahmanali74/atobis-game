@@ -115,9 +115,7 @@ const gameState = {
     totalRounds: 5, currentRound: 1, gameStartTime: null, timerInterval: null,
     isHost: false, gameAnswers: {}, scoringData: [],
     activeCategories: [...DEFAULT_CATEGORIES],
-    isReconnecting: false,
-    serverTimeOffset: 0, // local - server time diff
-    roundStartTime: null // server timestamp when round started
+    isReconnecting: false
 };
 
 // ==================== Screen Management ====================
@@ -255,9 +253,8 @@ socket.on('round-started', (data) => {
     gameState.currentRound = data.round;
     gameState.totalRounds = data.totalRounds;
     gameState.gameStartTime = data.startTime;
-    gameState.roundStartTime = data.startTime;
     if (data.categories) gameState.activeCategories = data.categories;
-    startRound(false, 0);
+    startRound();
 });
 
 socket.on('round-ended', (data) => {
@@ -343,7 +340,6 @@ socket.on('reconnect-success', (data) => {
     gameState.players = data.players || [];
     gameState.isHost = data.isHost;
     if (data.categories) gameState.activeCategories = data.categories;
-    if (data.serverTime) gameState.serverTimeOffset = Date.now() - data.serverTime;
 
     if (!data.gameActive) {
         showWaitingScreen();
@@ -351,22 +347,7 @@ socket.on('reconnect-success', (data) => {
         gameState.currentLetter = data.currentLetter;
         gameState.currentRound = data.currentRound;
         gameState.totalRounds = data.totalRounds;
-        gameState.roundStartTime = data.roundStartTime;
-        // Calculate elapsed time since round started
-        const elapsedMs = Date.now() - (data.roundStartTime + gameState.serverTimeOffset);
-        const elapsedSec = Math.max(0, Math.floor(elapsedMs / 1000));
-        startRound(true, elapsedSec);
-    } else if (data.roundState === 'scoring' && data.scoringData) {
-        gameState.currentLetter = data.currentLetter;
-        gameState.currentRound = data.currentRound;
-        gameState.totalRounds = data.totalRounds;
-        showScoringScreen({
-            players: data.scoringData,
-            currentRound: data.currentRound,
-            totalRounds: data.totalRounds,
-            categories: data.categories,
-            isHost: data.isHost
-        });
+        startRound();
     } else {
         showWaitingScreen();
     }
@@ -437,32 +418,23 @@ safeAddClick('start-game-btn', () => {
 });
 
 // ==================== Game Logic ====================
-function startRound(isReconnect = false, initialElapsed = 0) {
+function startRound() {
     showScreen('game-screen');
     safeText('current-letter', gameState.currentLetter || '');
     safeText('round-display', `${gameState.currentRound} / ${gameState.totalRounds}`);
     renderGameInputs(gameState.activeCategories);
     safeDisable('finish-btn', false);
-    if (!isReconnect) {
-        document.querySelectorAll('.game-input').forEach(input => { input.disabled = false; input.value = ''; input.classList.remove('filled'); });
-    } else {
-        document.querySelectorAll('.game-input').forEach(input => { input.disabled = false; });
-    }
-    startTimer(initialElapsed);
+    document.querySelectorAll('.game-input').forEach(input => { input.disabled = false; input.value = ''; input.classList.remove('filled'); });
+    startTimer();
     addInputListeners();
-    if (!isReconnect) {
-        showToast(`بدأت الجولة ${gameState.currentRound}! الحرف: ${gameState.currentLetter} 🚀`);
-    }
+    showToast(`بدأت الجولة ${gameState.currentRound}! الحرف: ${gameState.currentLetter} 🚀`);
 }
 
-function startTimer(initialElapsed = 0) {
+function startTimer() {
     const timerDisplay = $('timer');
     if (!timerDisplay) return;
-    let startTime = Date.now() - (initialElapsed * 1000);
+    let startTime = Date.now();
     if (gameState.timerInterval) clearInterval(gameState.timerInterval);
-    // Show immediately
-    const initElapsed = Math.floor((Date.now() - startTime) / 1000);
-    timerDisplay.textContent = `${String(Math.floor(initElapsed / 60)).padStart(2, '0')}:${String(initElapsed % 60).padStart(2, '0')}`;
     gameState.timerInterval = setInterval(() => {
         const elapsed = Math.floor((Date.now() - startTime) / 1000);
         timerDisplay.textContent = `${String(Math.floor(elapsed / 60)).padStart(2, '0')}:${String(elapsed % 60).padStart(2, '0')}`;

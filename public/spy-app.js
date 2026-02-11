@@ -93,9 +93,7 @@ const spyState = {
     timerInterval: null, timerRemaining: 0,
     selectedVote: null, selectedGuess: null, roleConfirmed: false,
     selectedCategories: ['animal', 'object', 'food', 'place', 'country'],
-    spyCount: 1, isReconnecting: false,
-    serverTimeOffset: 0, // local - server time diff
-    discussionStartTime: null // server timestamp when discussion started
+    spyCount: 1, isReconnecting: false
 };
 
 // ==================== Screen & Toast ====================
@@ -194,12 +192,7 @@ socket.on('spy-round-started', (data) => {
     spyState.roleConfirmed = false; showRoleScreen();
 });
 
-socket.on('spy-start-discussion', (data) => {
-    spyState.timerDuration = data.timerDuration;
-    if (data.discussionStartTime) spyState.discussionStartTime = data.discussionStartTime;
-    if (data.serverTime) spyState.serverTimeOffset = Date.now() - data.serverTime;
-    showDiscussionScreen();
-});
+socket.on('spy-start-discussion', (data) => { spyState.timerDuration = data.timerDuration; showDiscussionScreen(); });
 
 socket.on('spy-confirm-update', (data) => { safeText('spy-confirmed-count', `${data.confirmed} / ${data.total}`); });
 
@@ -252,55 +245,17 @@ socket.on('reconnect-success', (data) => {
     hideConnectionOverlay(); spyState.isReconnecting = false;
     spyState.roomCode = data.roomCode; spyState.players = data.players || [];
     spyState.isHost = data.isHost; spyState.playerId = socket.id;
-    if (data.serverTime) spyState.serverTimeOffset = Date.now() - data.serverTime;
 
     if (data.gameType === 'spy') {
-        if (!data.gameActive) {
-            showWaitingScreen();
-        } else if (data.roundState === 'role-reveal') {
-            // Restore role reveal state
+        if (!data.gameActive) { showWaitingScreen(); }
+        else if (data.roundState === 'discussion') {
             spyState.isSpy = data.isSpy; spyState.currentWord = data.currentWord;
             spyState.currentCategory = data.currentCategory; spyState.timerDuration = data.timerDuration;
             spyState.currentRound = data.currentRound; spyState.totalRounds = data.totalRounds;
-            spyState.roleConfirmed = data.confirmed || false;
-            if (spyState.roleConfirmed) {
-                // Already confirmed, show waiting for others
-                showRoleScreen();
-                // Jump to confirmed state
-                safeStyle('spy-role-hidden', 'display', 'none');
-                safeStyle('spy-role-revealed', 'display', 'none');
-                safeStyle('spy-role-confirmed', 'display', 'block');
-            } else {
-                showRoleScreen();
-            }
-        } else if (data.roundState === 'discussion') {
-            spyState.isSpy = data.isSpy; spyState.currentWord = data.currentWord;
-            spyState.currentCategory = data.currentCategory; spyState.timerDuration = data.timerDuration;
-            spyState.currentRound = data.currentRound; spyState.totalRounds = data.totalRounds;
-            spyState.discussionStartTime = data.discussionStartTime;
-            // Calculate elapsed seconds from server time
-            const elapsedMs = Date.now() - (data.discussionStartTime + spyState.serverTimeOffset);
-            const elapsedSec = Math.max(0, Math.floor(elapsedMs / 1000));
-            showDiscussionScreen(elapsedSec);
+            showDiscussionScreen();
         } else if (data.roundState === 'voting') {
-            spyState.isSpy = data.isSpy; spyState.currentWord = data.currentWord;
-            spyState.currentCategory = data.currentCategory;
-            spyState.currentRound = data.currentRound; spyState.totalRounds = data.totalRounds;
             showVotingScreen();
-        } else if (data.roundState === 'guessing') {
-            spyState.isSpy = data.isSpy; spyState.currentWord = data.currentWord;
-            spyState.currentCategory = data.currentCategory;
-            spyState.currentRound = data.currentRound; spyState.totalRounds = data.totalRounds;
-            // Show waiting screen for guess phase since we can't restore guess options
-            showScreen('spy-guess-screen');
-            safeStyle('spy-guess-container', 'display', 'none');
-            safeStyle('spy-guess-waiting', 'display', 'block');
-        } else if (data.roundState === 'result' && data.lastRoundResult) {
-            spyState.currentRound = data.currentRound; spyState.totalRounds = data.totalRounds;
-            showRoundResult(data.lastRoundResult);
-        } else {
-            showWaitingScreen();
-        }
+        } else { showWaitingScreen(); }
     }
     showToast('تم إعادة الاتصال بنجاح! ✅');
 });
@@ -404,7 +359,7 @@ safeAddClick('spy-hide-role-btn', () => {
 });
 
 // ==================== Discussion Screen ====================
-function showDiscussionScreen(initialElapsedSec = 0) {
+function showDiscussionScreen() {
     showScreen('spy-discussion-screen');
     safeText('spy-discussion-round', spyState.currentRound);
     safeText('spy-discussion-total', spyState.totalRounds);
@@ -418,23 +373,17 @@ function showDiscussionScreen(initialElapsedSec = 0) {
         safeStyle('spy-you-are-spy-reminder', 'display', 'none');
         safeText('spy-your-word-text', spyState.currentWord || '');
     }
-    startDiscussionTimer(initialElapsedSec);
+    startDiscussionTimer();
 }
 
-function startDiscussionTimer(initialElapsedSec = 0) {
-    // Calculate remaining time accounting for elapsed time
-    spyState.timerRemaining = Math.max(0, spyState.timerDuration - initialElapsedSec);
+function startDiscussionTimer() {
+    spyState.timerRemaining = spyState.timerDuration;
     const timerProgress = $('spy-timer-progress');
     const circumference = 2 * Math.PI * 45;
     if (timerProgress) { timerProgress.style.strokeDasharray = circumference; timerProgress.style.strokeDashoffset = 0; }
     if (spyState.timerInterval) clearInterval(spyState.timerInterval);
 
     updateTimerDisplay();
-    // Update progress bar immediately
-    if (timerProgress) {
-        const progress = 1 - (spyState.timerRemaining / spyState.timerDuration);
-        timerProgress.style.strokeDashoffset = circumference * progress;
-    }
     spyState.timerInterval = setInterval(() => {
         spyState.timerRemaining--;
         if (spyState.timerRemaining <= 0) { clearInterval(spyState.timerInterval); spyState.timerRemaining = 0; }

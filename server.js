@@ -481,8 +481,7 @@ function checkSpyGameFlowAfterDisconnect(code, room) {
         const confirmed = activePlayers.filter(p => p.confirmed).length;
         if (confirmed === activePlayers.length && activePlayers.length > 0) {
             room.roundState = 'discussion';
-            room.discussionStartTime = Date.now();
-            io.to(code).emit('spy-start-discussion', { timerDuration: room.timerDuration, discussionStartTime: room.discussionStartTime, serverTime: Date.now() });
+            io.to(code).emit('spy-start-discussion', { timerDuration: room.timerDuration });
             room.timerRef = setTimeout(() => {
                 if (room.roundState === 'discussion') {
                     room.roundState = 'voting';
@@ -633,7 +632,7 @@ function calculateSpyScores(room, spyCaught, spyGuessedCorrectly) {
 }
 
 function emitRoundResult(room, spyCaught, spyGuessedCorrectly) {
-    const resultData = {
+    io.to(room.code).emit('spy-round-result', {
         spyCaught,
         spyGuessedCorrectly,
         word: room.currentWord,
@@ -644,9 +643,7 @@ function emitRoundResult(room, spyCaught, spyGuessedCorrectly) {
             id: p.id, name: p.name, roundScore: p.roundScore,
             totalScore: p.totalScore, isSpy: room.spyIds.includes(p.id)
         }))
-    };
-    room.lastRoundResult = resultData;
-    io.to(room.code).emit('spy-round-result', resultData);
+    });
 }
 
 // ==================== Socket.IO connection handling ====================
@@ -669,11 +666,10 @@ io.on('connection', (socket) => {
             player.disconnected = false;
             socket.join(code);
 
-            const activePlayers = room.players.filter(p => !p.disconnected);
-            const reconnectData = {
+            socket.emit('reconnect-success', {
                 gameType: 'spy',
                 roomCode: code,
-                players: activePlayers,
+                players: room.players.filter(p => !p.disconnected),
                 isHost: room.host === socket.id,
                 gameActive: room.gameActive,
                 roundState: room.roundState,
@@ -682,17 +678,10 @@ io.on('connection', (socket) => {
                 isSpy: player.isSpy,
                 currentWord: player.isSpy ? null : room.currentWord,
                 currentCategory: room.currentCategory,
-                timerDuration: room.timerDuration,
-                discussionStartTime: room.discussionStartTime || null,
-                serverTime: Date.now(),
-                confirmed: player.confirmed,
-                voted: player.voted,
-                // For result screen
-                lastRoundResult: room.lastRoundResult || null
-            };
+                timerDuration: room.timerDuration
+            });
 
-            socket.emit('reconnect-success', reconnectData);
-            io.to(code).emit('spy-player-reconnected', { playerName: name, players: activePlayers });
+            io.to(code).emit('spy-player-reconnected', { playerName: name, players: room.players.filter(p => !p.disconnected) });
         } else {
             const room = getRoomByCode(code);
             if (!room) { socket.emit('reconnect-failed'); return; }
@@ -703,11 +692,10 @@ io.on('connection', (socket) => {
             player.disconnected = false;
             socket.join(code);
 
-            const activePlayers = room.players.filter(p => !p.disconnected);
-            const reconnectData = {
+            socket.emit('reconnect-success', {
                 gameType: 'atobis',
                 roomCode: code,
-                players: activePlayers,
+                players: room.players.filter(p => !p.disconnected),
                 isHost: room.host === socket.id,
                 gameActive: room.gameActive,
                 currentLetter: room.currentLetter,
@@ -715,20 +703,10 @@ io.on('connection', (socket) => {
                 totalRounds: room.totalRounds,
                 categories: room.categories,
                 usedLetters: room.usedLetters,
-                roundState: room.roundState,
-                roundStartTime: room.roundStartTime || null,
-                serverTime: Date.now(),
-                // For scoring screen
-                scoringData: (room.roundState === 'scoring') ? activePlayers.map(p => ({
-                    id: p.id, name: p.name, answers: p.answers,
-                    roundScore: p.roundScore || 0, totalScore: p.totalScore || 0
-                })) : null,
-                playerAnswers: player.answers || null,
-                hasSubmitted: player.hasSubmitted || false
-            };
+                roundState: room.roundState
+            });
 
-            socket.emit('reconnect-success', reconnectData);
-            io.to(code).emit('player-reconnected', { playerName: name, players: activePlayers });
+            io.to(code).emit('player-reconnected', { playerName: name, players: room.players.filter(p => !p.disconnected) });
         }
     });
 
@@ -1017,8 +995,7 @@ io.on('connection', (socket) => {
 
         if (confirmed === total) {
             room.roundState = 'discussion';
-            room.discussionStartTime = Date.now();
-            io.to(roomCode).emit('spy-start-discussion', { timerDuration: room.timerDuration, discussionStartTime: room.discussionStartTime, serverTime: Date.now() });
+            io.to(roomCode).emit('spy-start-discussion', { timerDuration: room.timerDuration });
             room.timerRef = setTimeout(() => {
                 if (room.roundState === 'discussion') {
                     room.roundState = 'voting';
