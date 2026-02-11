@@ -1,140 +1,63 @@
-# 🚌 أتوبيس كومبليت - لعبة جماعية أونلاين
+# 🎮 online-games (Atobis & Spy Game)
 
-لعبة أتوبيس كومبليت الشهيرة بنسخة أونلاين تدعم عدة لاعبين في نفس الوقت!
+A robust, real-time multiplayer game platform featuring two popular social games:
+1. **Atobis Complete (Bus Complete):** A classic word game where players race to find words starting with a specific letter across various categories.
+2. **Spy Game:** A social deduction game where players try to identify the spy among them based on a secret word.
 
-## ✨ المميزات
+## ✨ Features
 
-- 🎮 **لعب جماعي حقيقي**: العب مع أصدقائك في نفس الوقت
-- 🌐 **أونلاين بالكامل**: باستخدام Socket.io للاتصال الفوري
-- 🎯 **6 خانات**: ولد، بنت، حيوان، نبات، جماد، بلد
-- 🏆 **نظام نقاط ذكي**: إجابات فريدة = 10 نقاط، متكررة = 5 نقاط
-- ⚡ **مكافأة السرعة**: أول لاعب يخلص يحصل على 10 نقاط إضافية
-- 🎨 **تصميم عصري**: تدرجات لونية جذابة وتأثيرات حديثة
-- 📱 **متجاوب**: يعمل على الموبايل والكمبيوتر
+### 🔌 Connectivity & Resilience
+- **Smart Reconnection:** Players can refresh or disconnect and rejoin exactly where they left off (same screen, score, and timer).
+- **Timer Synchronization:** Game timers are synced with the server, ensuring fairness even if a client disconnects.
+- **Host Migration:** If the host disconnects, leadership is automatically transferred to the next active player.
+- **Room Management:** Inactive rooms are automatically cleaned up to save server resources.
+- **Rate Limiting:** Protection against spam and abuse.
 
-## 🚀 التثبيت والتشغيل
+### 🚌 Atobis Complete
+- Multiple rounds with customizable categories.
+- Real-time scoring updates.
+- Interactive scoring phase where the host can adjust points.
+- Leaderboard and podium finish.
 
-### المتطلبات
-- Node.js (الإصدار 14 أو أحدث)
+### 🕵️ Spy Game
+- Role assignment (Spy vs. Civilians).
+- Dynamic discussion timer.
+- Voting system to eliminate suspects.
+- Location/Word guessing for the Spy.
+- Complete game state recovery on reconnection.
+
+## 🚀 Getting Started
+
+### Prerequisites
+- Node.js (v14+ recommended)
 - npm
 
-### خطوات التشغيل
+### Installation
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/YOUR_USERNAME/REPO_NAME.git
+   cd atobis-spy-game
+   ```
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
 
-1. **تثبيت المكتبات** (تم بالفعل):
-```bash
-npm install
-```
-
-2. **تشغيل السيرفر**:
+### Running the Server
 ```bash
 npm start
 ```
+The server will start on port `3000` (default) or the port specified in `.env`.
 
-3. **افتح المتصفح**:
-```
-http://localhost:3000
-```
+Open your browser and navigate to: `http://localhost:3000`
 
-## 🎮 طريقة اللعب
+## 🛠️ Tech Stack
+- **Backend:** Node.js, Express, Socket.IO
+- **Frontend:** HTML5, CSS3, Vanilla JavaScript
+- **Real-time Communication:** Socket.IO
 
-### 1. إنشاء غرفة جديدة
-- أدخل اسمك
-- اترك خانة "كود الغرفة" فارغة
-- اضغط "ابدأ اللعب"
-- شارك كود الغرفة مع أصدقائك
+## 🤝 Contributing
+Contributions are welcome! Please feel free to submit a Pull Request.
 
-### 2. الانضمام لغرفة موجودة
-- أدخل اسمك
-- أدخل كود الغرفة
-- اضغط "ابدأ اللعب"
-
-### 3. اختيار الحرف (منشئ الغرفة فقط)
-- اختر حرف من الحروف العربية
-- اضغط "ابدأ اللعبة"
-
-### 4. اللعب
-- املأ الخانات الستة بكلمات تبدأ بالحرف المختار
-- شاهد حالة اللاعبين الآخرين
-- اضغط "خلصت!" عند الانتهاء
-
-### 5. النتائج
-- شاهد إجابات جميع اللاعبين
-- النقاط تُحسب تلقائياً
-- يمكنك بدء جولة جديدة
-
-## 🏗️ البنية التقنية
-
-### Backend (Node.js)
-- **Express**: خادم الويب
-- **Socket.io**: الاتصال الفوري بين اللاعبين
-- **CORS**: للسماح بالاتصالات من مصادر مختلفة
-
-### Frontend
-- **HTML5**: الهيكل
-- **CSS3**: التصميم (Glassmorphism, Gradients, Animations)
-- **JavaScript**: منطق اللعبة
-- **Socket.io Client**: الاتصال بالسيرفر
-
-## 📁 هيكل المشروع
-
-```
-atobis-complete-game/
-├── server.js           # السيرفر الرئيسي
-├── package.json        # إعدادات المشروع
-├── README.md          # هذا الملف
-└── public/            # الملفات العامة
-    ├── index.html     # الصفحة الرئيسية
-    ├── styles.css     # التصميم
-    └── app.js         # منطق اللعبة (Client)
-```
-
-## 🎯 نظام النقاط
-
-- **إجابة فريدة**: 10 نقاط
-- **إجابة متكررة**: 5 نقاط
-- **مكافأة الأسرع**: 10 نقاط إضافية
-- **إجابة خاطئة** (لا تبدأ بالحرف): 0 نقطة
-- **خانة فارغة**: 0 نقطة
-
-## 🌐 النشر على الإنترنت
-
-يمكنك نشر اللعبة على منصات مثل:
-- **Heroku**: مجاني وسهل
-- **Railway**: سريع ومجاني
-- **Render**: مجاني مع خيارات متقدمة
-- **Vercel/Netlify**: للـ Frontend فقط (يحتاج سيرفر منفصل)
-
-### مثال: النشر على Railway
-1. أنشئ حساب على [Railway.app](https://railway.app)
-2. اربط مشروعك من GitHub
-3. Railway سيكتشف Node.js تلقائياً
-4. سيتم النشر تلقائياً!
-
-## 🔧 التطوير المستقبلي
-
-أفكار للتحسين:
-- [ ] إضافة غرف دردشة
-- [ ] نظام تسجيل الدخول
-- [ ] حفظ الإحصائيات
-- [ ] قوائم المتصدرين
-- [ ] أوضاع لعب مختلفة
-- [ ] مؤثرات صوتية
-- [ ] وضع الليل/النهار
-
-## 📝 ملاحظات
-
-- اللعبة تدعم عدد غير محدود من اللاعبين في الغرفة الواحدة
-- الغرف تُحذف تلقائياً عند خروج جميع اللاعبين
-- إذا خرج منشئ الغرفة، يصبح أول لاعب هو المنشئ الجديد
-
-## 👨‍💻 المطور
-
-تم تطوير اللعبة بواسطة **Antigravity AI**
-
-## 📄 الترخيص
-
-هذا المشروع مفتوح المصدر ومتاح للجميع للاستخدام والتطوير.
-
----
-
-**استمتع باللعب! 🎮🚌**
+## 📄 License
+This project is open-source and available under the MIT License.
